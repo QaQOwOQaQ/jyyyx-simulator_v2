@@ -8,6 +8,9 @@
 
 static void TestAddFunctionCallAndComputation();
 
+void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr);
+uint64_t read64bits_dram(uint64_t paddr, core_t *cr);
+
 // symbols from isa and sram
 void print_register(core_t *cr);
 void print_stack(core_t *cr);

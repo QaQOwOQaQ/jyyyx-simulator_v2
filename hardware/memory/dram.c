@@ -19,7 +19,7 @@ e.g. write 0x0000-7fd3-57a0-2ae0 to cache, the memory lapping should be:
 /*======================================================*/
 
 // memory accessing used in struction
-uint64_t read64birs_dram(uint64_t paddr, core_t *cr)
+uint64_t read64bits_dram(uint64_t paddr, core_t *cr)
 {
     if(DEBUG_ENABLE_SRAM_CACHE == 1)
     {
@@ -44,7 +44,7 @@ uint64_t read64birs_dram(uint64_t paddr, core_t *cr)
     }
 }
 
-void write64birts_dram(uint64_t paddr, uint64_t data, core_t *cr)
+void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr)
 {
     if(DEBUG_ENABLE_SRAM_CACHE)
     {

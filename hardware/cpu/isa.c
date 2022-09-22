@@ -6,7 +6,7 @@
 #include <string.h>
 #include "../../headers/common.h"
 #include "../../headers/memory.h"
-#include "../../headers/common.h"
+#include "../../headers/cpu.h"
 
 /*==========================================*/
 /*      Instruction Set Architecture        */
@@ -380,9 +380,9 @@ void print_register(core_t *cr)
 
     reg_t reg = cr->reg;
 
-    printf("rax = 0x%-16llx\nrbx = 0x%-16llx\nrcx = 0x%-16llx\nrdx = 0x%-16llx\n", reg.rax, reg.rbx, reg.rcx, reg.rdx);
-    printf("rsi = 0x%-16llx\nrdi = 0x%-16llx\nrbp = 0x%-16llx\nrsp = 0x%-16llx\n", reg.rsi, reg.rdi, reg.rbp, reg.rsp);
-    printf("rip = 0x%-16llx\n", cr->rip);
+    printf("rax = 0x%-16lx\nrbx = 0x%-16lx\nrcx = 0x%-16lx\nrdx = 0x%-16lx\n", reg.rax, reg.rbx, reg.rcx, reg.rdx);
+    printf("rsi = 0x%-16lx\nrdi = 0x%-16lx\nrbp = 0x%-16lx\nrsp = 0x%-16lx\n", reg.rsi, reg.rdi, reg.rbp, reg.rsp);
+    printf("rip = 0x%-16lx\n", cr->rip);
     printf("CF = %u\tZF = %u\tSF = %u\tOF = %u\n", cr->CF, cr->ZF, cr->SF, cr->OF);
 }
 
@@ -405,7 +405,7 @@ void print_stack(core_t *cr)
         // print virtual address instead of physical address 
         // because usually the address we see in the program is virtual address
         // including p/x in GDB
-        printf("0x%16llx : %16llx", va, (uint64_t)*ptr);
+        printf("0x%16lx : %16lx", va, (uint64_t)*ptr);
 
         if(i == n)
         {

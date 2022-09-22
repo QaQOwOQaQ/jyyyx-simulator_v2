@@ -1,4 +1,4 @@
-CFLAGS = -Wall -g -O2 -Werror -std=gnu99 -Wno-unused-function
+CFLAGS = -Wall -g -O2 -std=gnu99 -Wno-unused-function
 
 EXE_HARDWARE = exe_hardware
 
@@ -14,7 +14,7 @@ MAIN_HARDWARE = main_hardware.c
 
 .PHONY:hardware
 hardware:
-	gcc $(CFLAGS) -I $(COMMON) $(CPU) $(MEMORY) $(MAIN_HARDWARE) -o $(EXE_HARDWARE)
+	gcc $(CFLAGS)  $(MEMORY) $(COMMON) $(CPU) $(MAIN_HARDWARE) -o $(EXE_HARDWARE)
 	./$(EXE_HARDWARE)
 
 clean:
