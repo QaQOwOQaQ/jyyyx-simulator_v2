@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "headers/common.h"
-#include "headers/memory.h"
-#include "headers/common.h"
+#include "../../headers/common.h"
+#include "../../headers/memory.h"
+#include "../../headers/common.h"
 
 /*==========================================*/
 /*      Instruction Set Architecture        */
@@ -254,7 +254,7 @@ static void push_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // src: register
         // dst: empty
         (cr->reg).rsp = (cr->reg).rsp - 8;
-        write64bits_ram(va2pa(cr->reg.rsp, cr), *(uint64_t *)src, cr);
+        write64bits_dram(va2pa(cr->reg.rsp, cr), *(uint64_t *)src, cr);
         next_rip(cr);
         reset_cflags(cr);
     }
@@ -268,10 +268,12 @@ static void pop_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     {
         // src: register
         // dst: empty
-        uint64_t old_val = read64bits_dram(va2pa2((cr->reg).rsp), cr);
+        uint64_t old_val = read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
         (cr->reg).rsp = (cr->reg).rsp + 8;
+        *(uint64_t *)src = old_val;
         next_rip(cr);
         reset_cflags(cr);
+        return ;
     }
 }
 
@@ -371,22 +373,22 @@ void instruction_cycle(core_t *cr)
 
 void print_register(core_t *cr)
 {
-    if(DEBUG_VERBOSE_SET & DEBUG_REGISTERS == 0X0)
+    if((DEBUG_VERBOSE_SET & DEBUG_REGISTERS) == 0X0)
     {
         return ;
     }
 
     reg_t reg = cr->reg;
 
-    printf("rax = 0x%-16lx\nrbx = 0x%-16lx\nrcx = 0x%-16lx\nrdx = 0x%-16lx\n", reg.rax, reg.rbx, reg.rcx, reg.rdx);
-    printf("rsi = 0x%-16lx\nrdi = 0x%-16lx\nrbp = 0x%-16lx\nrsp = 0x%-16lx\n", reg.rsi, reg.rdi, reg.rbp, reg.rsp);
-    printf("rip = 0x%-16lx\n", cr->rip);
+    printf("rax = 0x%-16llx\nrbx = 0x%-16llx\nrcx = 0x%-16llx\nrdx = 0x%-16llx\n", reg.rax, reg.rbx, reg.rcx, reg.rdx);
+    printf("rsi = 0x%-16llx\nrdi = 0x%-16llx\nrbp = 0x%-16llx\nrsp = 0x%-16llx\n", reg.rsi, reg.rdi, reg.rbp, reg.rsp);
+    printf("rip = 0x%-16llx\n", cr->rip);
     printf("CF = %u\tZF = %u\tSF = %u\tOF = %u\n", cr->CF, cr->ZF, cr->SF, cr->OF);
 }
 
 void print_stack(core_t *cr)
 {
-    if(DEBUG_VERBOSE_SET & DEBUG_PRINTSTACK == 0x0)
+    if((DEBUG_VERBOSE_SET & DEBUG_PRINTSTACK) == 0x0)
     {
         return ;
     }
@@ -403,7 +405,7 @@ void print_stack(core_t *cr)
         // print virtual address instead of physical address 
         // because usually the address we see in the program is virtual address
         // including p/x in GDB
-        printf("0x%16lx : %16lx", va, (uint64_t)*ptr);
+        printf("0x%16llx : %16llx", va, (uint64_t)*ptr);
 
         if(i == n)
         {

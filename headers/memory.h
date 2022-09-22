@@ -1,6 +1,6 @@
 // include guards to prevent double declaration of any identifiers 
 #ifndef MEMORY_GUARD
-#define MOMORY_GUARD
+#define MEMORY_GUARD
 
 #include <stdint.h>
 #include "cpu.h"

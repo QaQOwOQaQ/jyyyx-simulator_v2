@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "headers/common.h"
+#include "../headers/common.h"
 
 // comvert string to uint64_t
 uint64_t string2uint(const char *str)

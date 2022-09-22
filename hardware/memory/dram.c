@@ -1,8 +1,8 @@
 // Dynammic Random Access Memory
 
-#include "headers/common.h"
-#include "headers/cpu.h"
-#include "headers/memory.h"
+#include "../../headers/common.h"
+#include "../../headers/cpu.h"
+#include "../../headers/memory.h"
 
 
 /*

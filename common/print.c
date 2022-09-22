@@ -1,7 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
-#include "headers/common.h"
+#include "../headers/common.h"
 
 // wrapper of stdio print
 // controlled by the debug verbose bit set
