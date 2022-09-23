@@ -70,9 +70,9 @@ typedef struct INST_STRUCT
 /*====================================*/
 
 // function to map the string assembly code to inst_t instance 
-static void     parse_instruction(const char *str, inst_t *inst, core_t *cr);
-static void     parse_operand   (const char *str, od_t   *od,   core_t *cr);
-static uint64_t decode_operand  (od_t *od);
+static void     parse_instruction(const char *str, inst_t *inst, core_t *cr); // parse instruction:str to assembly_inst_type:inst
+static void     parse_operand    (const char *str, od_t   *od,   core_t *cr); // parse instruction:str to operand:od
+static uint64_t decode_operand   (od_t *od);
 
 
 // interpret the operand 
@@ -143,9 +143,42 @@ static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
 
 }
 
-static void pase_operand(const char *str, op_t *od, core_t *cr)
+static void pase_operand(const char *str, od_t *od, core_t *cr)
 {
+    // str: assembly code string, e.g. move %rsp %rbp
+    // od : pointer to the address to sotre the parsed operand
+    // cr : active core pocessor
 
+    od->type = EMPTY;
+    od->imm = 0;
+    od->reg1 = 0;
+    od->reg2 = 0;
+    od->scal = 0;
+
+    int str_len = strlen(str);
+    if(str_len == 0)
+    {
+        // speciall judge: empty operand string
+        return ;
+    }
+
+    if(str[0] == '$')
+    {
+        // immediate number
+        od->type = IMM;
+        // try to parse immediate number
+        od->imm = string2uint_range(str, 1, -1);
+    }
+    else if(str[0] == '%') 
+    {
+        // register
+
+    }
+    else 
+    {
+        // access memory
+
+    }
 }
 
 

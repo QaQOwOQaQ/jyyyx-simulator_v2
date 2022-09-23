@@ -170,12 +170,24 @@ typedef struct REGISTER_STRUCT
 
 typedef struct CORE_STRUCT 
 {
+    // we build this new struct named core_t because we want to acomplish multicore cpu
+    // but it's too complex that I only acomplish sigle core version
+    // do not think this struct is useless!
+
     // program counter or instruction pointer
+    // cpu pecuilar register
+    // take it in cpu and take other universal registers in new struct names reg_t
     union
     {
         uint64_t rip;
         uint32_t eip;
     };
+    
+    // universal register
+    /*================*/
+    /* register files */
+    /*================*/
+    reg_t reg;
 
     // condition code flags of most recent(lastest) operation
     // condition codes will only set by the following integer arthmetic instructions
@@ -211,11 +223,6 @@ typedef struct CORE_STRUCT
     uint32_t SF;
     // overflow flag: detect overflow for signed operations
     uint32_t OF;
-    
-    /*================*/
-    /* register files */
-    /*================*/
-    reg_t reg;
 } core_t;
 
 // define cpu core array to support core level parallelism

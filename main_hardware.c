@@ -7,6 +7,7 @@
 #define MAX_NUM_INSTRUCTION_CYCLE 100
 
 static void TestAddFunctionCallAndComputation();
+static void TestString2Uint();
 
 void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr);
 uint64_t read64bits_dram(uint64_t paddr, core_t *cr);
@@ -17,8 +18,48 @@ void print_stack(core_t *cr);
 
 int main()
 {
-    TestAddFunctionCallAndComputation();
+    // TestAddFunctionCallAndComputation();
+    TestString2Uint();
     return 0;
+}
+
+static void TestString2Uint() // Test: Successful
+{
+    const int n = 25;
+    const char *nums[25] = { // pointers array
+        "0",        // 0
+        "-0",
+        "0x00",
+        "0x01",
+        "0x000a",
+        "-1",
+        "00",
+        "0012",
+        "0x12",
+        "12",       // 9
+        "-12",
+        "-0x12",
+        "0xab",
+        "-0xab",
+        "2147483647",
+        "2147483648",       // 15
+        "-2147483647",
+        "-2147483648",
+        "0x8000000000000000",
+        "0xffffffffffffffff",
+        // "     0x     ",      // 20
+        // "0 0",
+        // "0xx",
+        "1111",     // 23
+        "-0xabcd",
+        "0xabcd",
+        "0x100",
+        "0x010",
+    };
+    for(int i = 0; i < n; i ++ )
+    {
+        printf("%16s  <---> 0x%-16lx\n", nums[i], string2uint(nums[i]));
+    }
 }
 
 static void TestAddFunctionCallAndComputation()
@@ -74,6 +115,8 @@ static void TestAddFunctionCallAndComputation()
     ac->rip = (uint64_t)&assembly[11];
     sprintf(assembly[13], "callq  $%p", &assembly[0]);
     
+    print_register(ac);
+
     printf("begin\n");
     int time = 0;
     while (time < 15)

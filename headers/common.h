@@ -22,7 +22,7 @@
 #define DEBUG_LOADER                0x80    // loader
 #define DEBUG_PARSEINST             0x100   // parse_inst
 
-#define DEBUG_VERBOSE_SET           0x1     // debug switch for debug_type  
+#define DEBUG_VERBOSE_SET           0x3     // debug switch for debug_type  
 
 // do page walk
 #define DEBUG_ENABLE_PAGE_WALK      0
