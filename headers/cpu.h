@@ -168,6 +168,34 @@ typedef struct REGISTER_STRUCT
 /*           (multi)cpu core         */
 /*===================================*/
 
+typedef union CPU_FLAGS_STRUCT {
+    /*
+        the past implementation is too watseful(using a uint64 to represent a flag)
+        we can only use a bit to represent it by making full use of C language characteristics
+        which is the strong bit operation
+
+        and the format using structs and unions to represent something is very useful and common
+    */
+    uint64_t __flag_values;
+    
+    /*=================================================*/
+    /*             | CF | ZF | SF | OF |               */
+    /* (low_addr) [0____15___31___47___63] (high_addr) */         
+    /*=================================================*/
+
+    struct 
+    {
+        // carry flag: detect overflow for unsigned operations
+        uint16_t CF;
+        // zero flag: result is zero ? 1 : 0
+        uint16_t ZF;
+        // sign flag: result is negatove: 1 : 0 --> highest bit
+        uint16_t SF;
+        // overflow flag: detect overflow for signed operations
+        uint16_t OF;
+    };
+} cpu_flag_t;
+
 typedef struct CORE_STRUCT 
 {
     // we build this new struct named core_t because we want to acomplish multicore cpu
@@ -214,15 +242,8 @@ typedef struct CORE_STRUCT
         cmp     compare
         test    test
     */
+    cpu_flag_t  flags;
 
-    // carry flag: detect overflow for unsigned operations
-    uint32_t CF;
-    // zero flag: result is zero ? 1 : 0
-    uint32_t ZF;
-    // sign flag: result is negatove: 1 : 0 --> highest bit
-    uint32_t SF;
-    // overflow flag: detect overflow for signed operations
-    uint32_t OF;
 } core_t;
 
 // define cpu core array to support core level parallelism

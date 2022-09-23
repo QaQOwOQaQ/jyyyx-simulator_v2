@@ -227,10 +227,7 @@ static handler_t handler_table[NUM_INSTRTYPE] = {
 // inline to reduce cost
 static inline void reset_cflags(core_t *cr)
 {
-    cr->CF = 0;
-    cr->ZF = 0;
-    cr->OF = 0;
-    cr->SF = 0;
+    cr->flags.__flag_values = 0;
 }
 
 // update the rip pointer to the next instruction sequentially
@@ -416,7 +413,7 @@ void print_register(core_t *cr)
     printf("rax = 0x%-16lx\nrbx = 0x%-16lx\nrcx = 0x%-16lx\nrdx = 0x%-16lx\n", reg.rax, reg.rbx, reg.rcx, reg.rdx);
     printf("rsi = 0x%-16lx\nrdi = 0x%-16lx\nrbp = 0x%-16lx\nrsp = 0x%-16lx\n", reg.rsi, reg.rdi, reg.rbp, reg.rsp);
     printf("rip = 0x%-16lx\n", cr->rip);
-    printf("CF = %u\tZF = %u\tSF = %u\tOF = %u\n", cr->CF, cr->ZF, cr->SF, cr->OF);
+    printf("CF = %u\tZF = %u\tSF = %u\tOF = %u\n", cr->flags.CF, cr->flags.ZF, cr->flags.SF, cr->flags.OF);
 }
 
 void print_stack(core_t *cr)
