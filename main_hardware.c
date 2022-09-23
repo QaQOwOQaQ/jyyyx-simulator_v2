@@ -25,10 +25,12 @@ void print_stack(core_t *cr);
 
 int main()
 {
+    printf("main start==========>\n");
     // TestAddFunctionCallAndComputation();
     // TestString2Uint();
-    printf("main start==========>\n");
-    TestParseOperand();
+    // TestParseOperand();
+    
+    
     printf("main end============>\n");
     return 0;
 }

@@ -1,10 +1,12 @@
 ## After refactory by responsitory assembly
 
 ### 9.22 
-complete initation and can run first inst then go core dupmed
+complete initation after refactory, can run first instruction, then go core dupmed, because we haven't accomplish parse work.
 
 ### 9.23
-complete function: string2uint_range (the commit[47dcf2593402aeec578989f80ea23e84ba4982ea] noted that complete parse operand is wrong!)
+complete function: string2uint_range.
 
-optimization CPU_Flags by using C_bit_operation to only use one 64uint but four 64uint to represent them
+optimization CPU_Flags by using c-bit-operation, we can only use one 64uint but four 64uint to represent Flags
+
+complete inst-parse and operand-parse
 
