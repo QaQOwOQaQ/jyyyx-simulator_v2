@@ -137,13 +137,80 @@ static uint64_t decode_operand(od_t *od)
     return 0;
 }
 
+// lookup table
+static const char *reg_name_list[72] = {
+    "%rax", "%eax", "%ax", "%ah", "%al",
+    "%rbx", "%ebx", "%bx", "%bh", "%bl",
+    "%rcx", "%ecx", "%cx", "%ch", "%cl",
+    "%rdx", "%edx", "%dx", "%dh", "%dl",
+    "%rsi", "%esi", "%si", "%sih", "%sil",
+    "%rdi", "%edi", "%di", "%dih", "%dil",
+    "%rbp", "%ebp", "%bp", "%bph", "%bpl",
+    "%rsp", "%esp", "%sp", "%sph", "%spl",
+    /*----------------------------------*/
+    "%r8", "%r8d", "%r8w", "%r8b",
+    "%r9", "%r9d", "%r9w", "%r9b",
+    "%r10", "%r10d", "%r10w", "%r10b",
+    "%r11", "%r11d", "%r11w", "%r11b",
+    "%r12", "%r12d", "%r12w", "%r12b",
+    "%r13", "%r13d", "%r13w", "%r13b",
+    "%r14", "%r14d", "%r14w", "%r14b",
+    "%r15", "%r15d", "%r15w", "%r15b",
+};
+
+
+static uint64_t reflect_registers(const char *str, core_t *cr)
+{
+    // reflect means "映射";    
+    // %rax --> tmp --> cr.reg.rax (即，我们要先知道是哪个寄存器tmp，然后再转化为runtime对应的register的address)
+    
+    reg_t *reg = &(cr->reg);
+    uint64_t reg_addr[72] = {
+        (uint64_t)&(reg->rax), (uint64_t)&(reg->eax), (uint64_t)&(reg->ax), (uint64_t)&(reg->ah), (uint64_t)&(reg->al),
+        (uint64_t)&(reg->rbx), (uint64_t)&(reg->ebx), (uint64_t)&(reg->bx), (uint64_t)&(reg->bh), (uint64_t)&(reg->bl),
+        (uint64_t)&(reg->rcx), (uint64_t)&(reg->ecx), (uint64_t)&(reg->cx), (uint64_t)&(reg->ch), (uint64_t)&(reg->cl),
+        (uint64_t)&(reg->rdx), (uint64_t)&(reg->edx), (uint64_t)&(reg->dx), (uint64_t)&(reg->dh), (uint64_t)&(reg->dl),
+        (uint64_t)&(reg->rsi), (uint64_t)&(reg->esi), (uint64_t)&(reg->si), (uint64_t)&(reg->sih), (uint64_t)&(reg->sil),
+        (uint64_t)&(reg->rdi), (uint64_t)&(reg->edi), (uint64_t)&(reg->di), (uint64_t)&(reg->dih), (uint64_t)&(reg->dil),
+        (uint64_t)&(reg->rbp), (uint64_t)&(reg->ebp), (uint64_t)&(reg->bp), (uint64_t)&(reg->bph), (uint64_t)&(reg->bpl),
+        (uint64_t)&(reg->rsp), (uint64_t)&(reg->esp), (uint64_t)&(reg->sp), (uint64_t)&(reg->sph), (uint64_t)&(reg->spl),
+        /*------------------------------------------------------------------------------------------------------------*/
+        (uint64_t)&(reg->r8), (uint64_t)&(reg->r8d), (uint64_t)&(reg->r8w), (uint64_t)&(reg->r8b), 
+        (uint64_t)&(reg->r9), (uint64_t)&(reg->r9d), (uint64_t)&(reg->r9w), (uint64_t)&(reg->r9b), 
+        (uint64_t)&(reg->r10), (uint64_t)&(reg->r10d), (uint64_t)&(reg->r10w), (uint64_t)&(reg->r10b), 
+        (uint64_t)&(reg->r11), (uint64_t)&(reg->r11d), (uint64_t)&(reg->r11w), (uint64_t)&(reg->r11b), 
+        (uint64_t)&(reg->r12), (uint64_t)&(reg->r12d), (uint64_t)&(reg->r12w), (uint64_t)&(reg->r12b), 
+        (uint64_t)&(reg->r13), (uint64_t)&(reg->r13d), (uint64_t)&(reg->r13w), (uint64_t)&(reg->r13b), 
+        (uint64_t)&(reg->r14), (uint64_t)&(reg->r14d), (uint64_t)&(reg->r14w), (uint64_t)&(reg->r14b), 
+        (uint64_t)&(reg->r15), (uint64_t)&(reg->r15d), (uint64_t)&(reg->r15w), (uint64_t)&(reg->r15b),   
+    };
+    
+    for(int i = 0; i < 72; i ++ )
+    {
+        /*          [bug !!!]
+            * I make a fucking bug becease I forget a fact that: if(a == b) then strcmp(a,b) == 0;
+            * fucking bug I write is that: if(strcmp(str, reg_name_list[i]))    {...}
+        */
+       
+        if(strcmp(str, reg_name_list[i]) == 0)   // to make %rax --> tmp
+        {
+            // now we konw that tmp is the index inside reg_name_list (我们知道这个东西是什么了)
+            return reg_addr[i];
+        }
+    }
+
+    // else
+    printf("parse register %s error\n", str);
+    exit(0);
+}
 
 static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
 {
 
 }
 
-static void pase_operand(const char *str, od_t *od, core_t *cr)
+// static
+void parse_operand(const char *str, od_t *od, core_t *cr)
 {
     // str: assembly code string, e.g. move %rsp %rbp
     // od : pointer to the address to sotre the parsed operand
@@ -168,16 +235,170 @@ static void pase_operand(const char *str, od_t *od, core_t *cr)
         od->type = IMM;
         // try to parse immediate number
         od->imm = string2uint_range(str, 1, -1);
+        return ;
     }
     else if(str[0] == '%') 
     {
         // register
-
+        od->type = REG;
+        od->reg1 = reflect_registers(str, cr);
+        return ;
     }
     else 
     {
-        // access memory
+        /*=====================================================*/
+        /*                  |memory access|                    */
+        /*-----------------------------------------------------*/
+        /*    instruction    :  imm(%reg1,%reg2,scal)          */
+        /*-----------------------------------------------------*/
+        /*    count_brackets :   0    1    1     1             */
+        /*    count_comma    :   0    0    1     2             */
+        /*=====================================================*/
+        
+        /*
+            * we have two ways to process operand
+            * First is use really automaton such as DFA
+            * Second is use count-check, just like a implicit(隐式) automaton
+            * we choice the Second way, just becasue it's simple
+        */
+        char imm[64] = {'\0'}, reg1[64] = {'\0'}, reg2[64] = {'\0'}, scal[64] = {'\0'};
+        int imm_len = 0, reg1_len = 0, reg2_len = 0, scal_len = 0;
 
+        int c_brackets = 0; // count_brackets ()
+        int c_comma = 0;    // count_comma     ,
+        
+        for(int i = 0; i < str_len; i ++ )
+        {
+            char c = str[i];
+            if(c == '(' || c == ')')
+            {
+                c_brackets ++ ;
+                continue;
+            }
+            else if(c == ',')
+            {
+                c_comma ++ ;
+                continue;
+            }
+            else
+            {
+                // parse imm(reg1,reg2,scl)
+                // e.g. no space here, look at gdb, no space also
+                // such as: imm(reg1, reg2, reg3) is invalid
+                
+                // following notes like "xxx" means the char we are processing now
+                // "???"" means the string we have already processed
+                if(c_brackets == 0)
+                {
+                    imm[imm_len ++ ] = c;
+                    continue;
+                }
+                else if(c_brackets == 1)
+                {
+                    if(c_comma == 0)
+                    {
+                        reg1[reg1_len ++ ] = c;
+                        continue;
+                    }
+                    else if(c_comma == 1)
+                    {
+                        reg2[reg2_len ++ ] = c;
+                        continue;
+                    }
+                    else if(c_comma == 2)
+                    {
+                        scal[scal_len ++ ] = c;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        if(scal_len > 0)
+        {
+            od->scal = string2uint(scal);
+            if(od->scal != 1 && od->scal != 2 && od->scal != 4 && od->scal != 8)
+            {
+                printf("%s is not a legal scaler(1 || 2 || 4 || 8)\n", scal);
+                exit(0);
+            }
+        }
+
+        if(reg1_len > 0)
+        {
+            printf("debug_reg1: %s\n", reg1);
+            od->reg1 = reflect_registers(reg1, cr);
+        }
+
+        if(reg2_len > 0)
+        {
+            printf("debug_reg2: %s\n", reg2);
+            od->reg2 = reflect_registers(reg2, cr);
+        }
+
+        if(imm_len > 0)
+        {
+            od->imm = string2uint(imm);
+        }
+        
+        //  set operand type
+        if(c_brackets == 0) // [imm]
+        {
+            od->type = MEM_IMM; // 1
+        }
+        else    // [reg] && [scal]
+        {
+            if(c_comma == 0) // [reg1]
+            {
+                if(imm_len == 0) 
+                {
+                    od->type = MEM_REG1; // 2
+                }
+                else 
+                {
+                    od->type = MEM_IMM_REG1; // 3
+                }
+            }
+            else if(c_comma == 1) // [reg1] [reg2]
+            {
+                // if we have reg2, we must have reg1
+                // because if we dont have reg1, why need reg2?
+                // we can use reg1 to repace reg2
+                if(imm_len == 0)
+                {
+                    od->type = MEM_REG1_REG2; // 4
+                }
+                else 
+                {
+                    od->type = MEM_IMM_REG1_REG2; // 5
+                }
+            }
+            else if(c_comma == 2)   // [reg1] [reg2] [scal]
+            {
+                if(imm_len == 0)
+                {
+                    if(reg1_len == 0)
+                    {
+                        od->type = MEM_REG2_SCAL; // 6
+                    }
+                    else
+                    {
+                        od->type = MEM_REG1_REG2_SCAL; // 7
+                    }
+                }
+                else 
+                {
+                    if(reg1_len == 0)
+                    {
+                        od->type = MEM_IMM_REG2_SCAL; // 8
+                    }
+                    else
+                    {
+                        od->type = MEM_IMM_REG1_REG2_SCAL; // 9
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -447,6 +668,48 @@ void print_stack(core_t *cr)
 }
 
 
+
+// Test function: void parse_operand();
+void TestParseOperand();
+void TestParseOperand()
+{
+    printf("isa start------------>\n");
+    core_t *ac = (core_t *)&cores[ACTIVE_CORE];
+    const char *operand[12] = {
+        "", // 0
+        "$0x1234", // 1
+        "%rax", // 2
+        "0xabcd", // 3
+        "(%rsp)", // 4
+        "0xabcd(%rsp)", // 5
+        "(%rsp,%rbx)", // 6
+        "0xabcd(%rsp,%rbx)", // 7
+        "(,%rbx,8)", // 8
+        "0xabcd(,%rbx,8)", // 9
+        "(%rsp,%rbx,8)", // 10
+        "0xabcd(%rsp,%rbx,8)", // 11
+    };
+
+    printf("rax: %p\n", &((ac->reg).rax));
+    printf("rsp: %p\n", &((ac->reg).rsp));
+    printf("rbx: %p\n", &((ac->reg).rbx));
+
+    for(int i = 0; i < 12; i ++ )
+    {
+        printf("<-------%dth-------h>\n", i + 1);
+        od_t od;
+        parse_operand(operand[i], &od, ac);
+
+        printf("\n%s\n", operand[i]);
+        printf("od_enum type: %d\n", od.type);
+        printf("od_imm  0x%lx\n", od.imm);
+        printf("od_reg1 0x%lx\n", od.reg1);
+        printf("od_reg2 0x%lx\n", od.reg2);
+        printf("od_scal 0x%lx\n", od.scal);    
+    }
+
+    printf("isa end-------------->\n");
+}
 
 
 

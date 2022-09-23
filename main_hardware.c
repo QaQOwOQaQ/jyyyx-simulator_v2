@@ -6,11 +6,18 @@
 
 #define MAX_NUM_INSTRUCTION_CYCLE 100
 
+
+/*==============================*/
+/*      test procedure          */
 static void TestAddFunctionCallAndComputation();
 static void TestString2Uint();
+void TestParseOperand(); // define at file isa.c
 
 void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr);
 uint64_t read64bits_dram(uint64_t paddr, core_t *cr);
+/*===============================*/
+
+
 
 // symbols from isa and sram
 void print_register(core_t *cr);
@@ -20,8 +27,9 @@ int main()
 {
     // TestAddFunctionCallAndComputation();
     // TestString2Uint();
-
-
+    printf("main start==========>\n");
+    TestParseOperand();
+    printf("main end============>\n");
     return 0;
 }
 

@@ -14,6 +14,7 @@ MAIN_HARDWARE = main_hardware.c
 
 .PHONY:hardware
 hardware:
+	clear
 	gcc $(CFLAGS)  $(MEMORY) $(COMMON) $(CPU) $(MAIN_HARDWARE) -o $(EXE_HARDWARE)
 	./$(EXE_HARDWARE)
 

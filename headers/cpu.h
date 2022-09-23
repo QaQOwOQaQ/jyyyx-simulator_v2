@@ -115,7 +115,7 @@ typedef struct REGISTER_STRUCT
     {
         uint64_t r9;
         uint32_t r9d;
-        uint16_t rw;
+        uint16_t r9w;
         uint8_t  r9b;
     };
     union // caller saved
@@ -156,7 +156,7 @@ typedef struct REGISTER_STRUCT
     union // callee saved
     {
         uint64_t r15;
-        uint32_t r1d;
+        uint32_t r15d;
         uint16_t r15w;
         uint8_t  r15b;
     };
