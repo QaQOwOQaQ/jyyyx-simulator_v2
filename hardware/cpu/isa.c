@@ -328,7 +328,7 @@ static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
     {
         inst->op = INST_JNE;
     }
-    else if(strcmp(op_str, "imp") == 0)
+    else if(strcmp(op_str, "jmp") == 0)
     {
         inst->op = INST_JMP;
     }
@@ -582,7 +582,7 @@ static handler_t handler_table[NUM_INSTRTYPE] = {
 // inline to reduce cost
 static inline void reset_cflags(core_t *cr)
 {
-    cr->flags.__flag_values = 0;
+    cr->flags.__cpu_flag_value = 0;
 }
 
 // update the rip pointer to the next instruction sequentially
@@ -675,7 +675,21 @@ static void pop_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 
 static void leave_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
+    // Leave means the function execute done
+    // This instruction thkes no arguments.
+    // It is equivalent to executing the following two instruction:
+    // 1. moveq %rbp,%rsp
+    // 2. pop %rbp
+    (cr->reg).rsp = (cr->reg).rbp;         
+    uint64_t old_val = read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
+    (cr->reg).rbp = old_val;
+    (cr->reg).rsp = (cr->reg).rsp + 8;      
+    next_rip(cr);
+    reset_cflags(cr);
 
+    // you can find the two instructions is the reverse operation of the begining two instructions when you create a new stack:
+    // 1. push %rbp
+    // 2. moveq %rsp %rbp
 }
 
 static void call_handler(od_t *src_od, od_t *dst_od, core_t *cr)
@@ -715,7 +729,17 @@ static void add_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // src: register (value: int64_t bit map)
         // dst: register (value: int64_t bit map)
         uint64_t val = (*(uint64_t *)src) + (*(uint64_t *)dst);
+        
+        int val_sign = ((val >> 63) * 0x1);
+        int src_sign = ((*(uint64_t *)src >> 63) & 0x1);
+        int dst_sign = ((*(uint64_t *)dst >> 63) & 0x1);
+
         // set condition flag
+        cr->flags.CF = (val < *(uint64_t *)src);   // unsigne
+        cr->flags.ZF = (val == 0);
+        cr->flags.SF = val_sign;
+        cr->flags.OF = ((!(src_sign ^ dst_sign)) & (src_sign ^ val_sign));   // signed
+        //cr->flags.OF = (src_sign == 0 && dst_sign == 0 && val_sign == 1) || (src_sign == 1 && dst_sign == 1 && val_sign == 0);
 
         // update registers
         *(uint64_t *)dst = val;
@@ -727,22 +751,96 @@ static void add_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 
 static void sub_handler(od_t *src_od, od_t *dst_od, core_t * cr)
 {
+    uint64_t src = decode_operand(src_od);
+    uint64_t dst = decode_operand(dst_od);
 
+    if(src_od->type == IMM && dst_od->type == REG)
+    {
+        // src: immediate
+        // dst: register (value: int64_t bit map)
+        // dst = dst - src = dst + (-src)
+        // use (~x+1) but (-x) is a better way, we interpret it at bit mapping
+        uint64_t val = *(uint64_t *)dst + (~src + 1); // operation over the bit map
+        
+        int val_sign = ((val >> 63) & 0x1);
+        int src_sign = ((src >> 63) & 0x1);
+        int dst_sign = ((*(uint64_t *)dst >> 63) & 0x1);
+
+        // set condition flag
+        cr->flags.CF = (val > (*(uint64_t *)dst));   // unsigne
+        cr->flags.ZF = (val == 0);
+        cr->flags.SF = val_sign;
+        cr->flags.OF = ((src_sign ^ dst_sign) & (val_sign ^ src_sign));  // signed
+        //cr->flags.OF = (src_sign == 1 && dst_sign == 0 && val_sign == 1) || (src_sign == 0 && dst_sign == 1 && val_sign == 0);
+
+        // update registers
+        *(uint64_t *)dst = val;
+        // signede and unsigned value follow the same addition. e.g.
+        next_rip(cr);
+        return ;
+    }
 }
 
 static void cmp_handler(od_t *src_od, od_t *dst_od, core_t * cr)
 {
+    uint64_t src = decode_operand(src_od);
+    uint64_t dst = decode_operand(dst_od);
 
+    if(src_od->type == IMM && dst_od->type >= MEM_IMM)
+    {
+        // src: immediate
+        // dst: access memory
+        // cmp src dst --> dst-src --> s2+(-s1)
+        uint64_t dval = read64bits_dram(va2pa(dst, cr), cr);
+        uint64_t val = dval + (~src + 1);
+
+        int val_sign = ((val  >> 63) & 0x1);
+        int src_sign = ((src  >> 63) & 0x1);
+        int dst_sign = ((dval >> 63) & 0x1);
+
+        // set condition flag
+        cr->flags.CF = (val > dval);   // unsigne
+        cr->flags.ZF = (val == 0);
+        cr->flags.SF = val_sign;
+        cr->flags.OF = ((src_sign ^ dst_sign) & (val_sign ^ src_sign));  // signed
+        //cr->flags.OF = (src_sign == 1 && dst_sign == 0 && val_sign == 1) || (src_sign == 0 && dst_sign == 1 && val_sign == 0);
+
+        next_rip(cr);
+        return ;
+    }
 }
 
 static void jne_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
-
+    uint64_t src = decode_operand(src_od);
+    /*  
+        In the assembly code of jmp, the incoming source operand is a register-type value,
+        you can see: like: "jmp 0x400380".         
+        so the number of 0x400380 will be interpret as a register in our simulator(beceuse the number without '$'),
+        but the number should be interpret as a immediately, emmmm...., very odd.
+        so you shoudldn't add type-check of source like: if(src_od->type == IMM) {...}
+        because the src type as a register
+        the solution to solve it is don't check the type
+        very easy solution 
+    */
+    if(cr->flags.ZF != 1)
+    {
+        // success to jump
+        cr->rip = src;
+    }
+    else
+    {
+        // go on the next instruction
+        next_rip(cr);
+    }
+    reset_cflags(cr);
 }
 
 static void jmp_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
-
+    // like jne, the number of src also is a immediate but the type of it is a register
+    uint64_t src= decode_operand(src_od);
+    cr->rip = src;
 }
 
 
@@ -750,18 +848,18 @@ static void jmp_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 // the only exposed interface outside CPU
 void instruction_cycle(core_t *cr)
 {
-    /*
-        fetch inst --> decode --> get operands --> execute --> write back
-    */
+    /*  fetch inst --> decode --> get operands --> execute --> write back  */
 
     // FETCH: get the instruction string by program counter
-    const char *inst_str = (const char *)cr->rip;
+    char inst_str[MAX_INSTRUCTION_CHAR + 10];
+    readinst_dram(va2pa(cr->rip, cr), inst_str, cr);
+    
     debug_print(DEBUG_INSTRUCTIONCYCLE, "%lx    %s\n", cr->rip, inst_str);
 
     // DECODE: decode the rum-time instruction operands
     inst_t inst;
     parse_instruction(inst_str, &inst, cr);
-    // printf("[debug]Inst: %s\n", inst_str);
+    printf("[debug]Inst: %s\n", inst_str);
 
     // EXCUTE: get the function pointer or handler by the operator
     handler_t handler = handler_table[inst.op];

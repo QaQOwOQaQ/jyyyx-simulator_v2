@@ -176,7 +176,7 @@ typedef union CPU_FLAGS_STRUCT {
 
         and the format using structs and unions to represent something is very useful and common
     */
-    uint64_t __flag_values;
+    uint64_t __cpu_flag_value;
     
     /*=================================================*/
     /*             | CF | ZF | SF | OF |               */

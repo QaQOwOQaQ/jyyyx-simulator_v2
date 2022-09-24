@@ -31,4 +31,14 @@ uint8_t pm[PHYSICAL_MEMORY_SPACE];
 uint64_t read64bits_dram (uint64_t paddr, core_t *cr);
 void     write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr);
 
+// cpu get the instruction at dram, so it's necessary to set the interface for cpu to w/r the instruction in dram
+void readinst_dram (uint64_t padrr, char *buf,       core_t *cr);
+void writeinst_dram(uint64_t paddr, const char *str, core_t *cr); 
+/*================================================================================*/
+/*                              [Warning]                                         */
+/*  In the theory, the area where code is stored in memory should be read-only,   */
+/*  but we nedd to write to the memory code area, so this function is set         */
+/*================================================================================*/
+
+
 #endif
