@@ -206,6 +206,142 @@ static uint64_t reflect_registers(const char *str, core_t *cr)
 
 static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
 {
+    char op_str[64] = {'\0'},  src_str[64] = {'\0'}, dst_str[64] = {'\0'};
+    int op_len = 0, src_len = 0, dst_len = 0;
+
+    int str_len = strlen(str);
+    int count_brackets = 0;
+    int state = 0;
+    /*==============================================*/ 
+    /*      inst : [__] op [__] od_1 , od_2 [__]    */
+    /*      state:  0   1    2   3   4   5   6      */
+    /*==============================================*/
+
+    for(int i = 0; i < str_len; i ++ )
+    {
+        char c = str[i];
+        // 1th
+        if(c == '(' || c == ')')
+        {
+            count_brackets ++ ;
+        }
+        // 2th
+        if(state == 0 && c != ' ') 
+        {
+            state = 1;
+        }
+        else if(state == 1 && c == ' ')
+        {
+            state = 2;
+            // the current character is a space and can be skipped directly 
+            continue;
+        }
+        else if(state == 2 && c != ' ')
+        {
+            state = 3;
+        }
+        else if(state == 3 && c == ',' && (count_brackets == 0 || count_brackets == 2))
+        {
+            state = 4;
+            continue;
+        }
+        else if(state == 4 && c != ' ' && c != ',')
+        {
+            state = 5;
+        }
+        else if(state == 5 && c == ' ')
+        {
+            state = 6;
+            continue;
+        }
+        // 3th
+        if(state == 1)
+        {
+            op_str[op_len ++ ] = c;
+            continue;
+        }
+        else if(state == 3)
+        {
+            src_str[src_len ++ ] = c;
+            continue;
+        }
+        else if(state == 5)
+        {
+            dst_str[dst_len ++] = c;
+            continue;
+        }
+    }
+
+    // parse done: op_str, src_str, dst_str 
+    parse_operand(src_str, &inst->src, cr);
+    parse_operand(dst_str, &inst->dst, cr);
+/*
+    INST_MOV,       // 0
+    INST_PUSH,      // 1
+    INST_POP,       // 2
+    INST_LEAVE,     // 3
+    INST_CALL,      // 4
+    INST_RET,       // 5
+    INST_ADD,       // 6
+    INST_SUB,       // 7
+    INST_CMP,       // 8
+    INST_JNE,       // 9
+    INST_JMP,       // 10
+*/
+    // the instruction type match can use "trie\prefix tree"
+    if(strcmp(op_str, "mov") == 0 || strcmp(op_str, "movq") == 0)
+    {
+        inst->op = INST_MOV;
+    }
+    else if(strcmp(op_str, "push") == 0)
+    {
+        inst->op = INST_PUSH;
+    }
+    else if(strcmp(op_str, "pop") == 0)
+    {
+        inst->op = INST_POP;
+    }else if(strcmp(op_str, "leaveq") == 0)
+    {
+        inst->op = INST_LEAVE;
+    }
+    else if(strcmp(op_str, "callq") == 0)
+    {
+        inst->op = INST_CALL;
+    }
+    else if(strcmp(op_str, "retq") == 0)
+    {
+        inst->op = INST_RET;
+    }
+    else if(strcmp(op_str, "add") == 0)
+    {
+        inst->op = INST_ADD;
+    }
+    else if(strcmp(op_str, "sub") == 0)
+    {
+        inst->op = INST_SUB;
+    }
+    else if(strcmp(op_str, "cmpq") == 0)
+    {
+        inst->op = INST_CMP;
+    }
+    else if(strcmp(op_str, "jne") == 0)
+    {
+        inst->op = INST_JNE;
+    }
+    else if(strcmp(op_str, "imp") == 0)
+    {
+        inst->op = INST_JMP;
+    }
+    else
+    {
+        printf("Instruction parse error: %s\n", op_str);
+        exit(0);
+    }
+
+    debug_print(DEBUG_PARSEINST, 
+                "[%s (%d)] [%s (%d)] [%s (%d)]\n", 
+                op_str, inst->op, src_str, inst->src.type, dst_str, inst->dst.type
+    );
 
 }
 
@@ -326,13 +462,11 @@ void parse_operand(const char *str, od_t *od, core_t *cr)
 
         if(reg1_len > 0)
         {
-            printf("debug_reg1: %s\n", reg1);
             od->reg1 = reflect_registers(reg1, cr);
         }
 
         if(reg2_len > 0)
         {
-            printf("debug_reg2: %s\n", reg2);
             od->reg2 = reflect_registers(reg2, cr);
         }
 
@@ -486,11 +620,20 @@ static void mov_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         reset_cflags(cr);
         return ;
     }
-    else if(src_od->type >= IMM && dst_od->type == REG)
+    else if(src_od->type >= MEM_IMM && dst_od->type == REG)
     {
         // src: virtual address
         // dst: register
         *(uint64_t *)dst = read64bits_dram(va2pa(src, cr), cr);
+        next_rip(cr);
+        reset_cflags(cr);
+        return ;
+    }
+    else if(src_od->type == IMM && dst_od->type == REG)
+    {
+        // src: immediate number (uint64_t bit map)
+        // dst: register
+        *(uint64_t *)dst = src;
         next_rip(cr);
         reset_cflags(cr);
         return ;
@@ -505,9 +648,11 @@ static void push_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // src: register
         // dst: empty
         (cr->reg).rsp = (cr->reg).rsp - 8;
-        write64bits_dram(va2pa(cr->reg.rsp, cr), *(uint64_t *)src, cr);
+        // do not write:cr->reg.rsp  **bug**
+        write64bits_dram(va2pa((cr->reg).rsp, cr), *(uint64_t *)src, cr);
         next_rip(cr);
         reset_cflags(cr);
+        return ;
     }
 }
 
@@ -556,6 +701,7 @@ static void ret_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     
     // pop rsp
     uint64_t ret_addr = read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
+    (cr->reg.rsp) = (cr->reg).rsp + 8; /* debug 2 hour because I forget to add that sentense, why didn't change rsp when you got ret_addr*/
     cr->rip = ret_addr;
     reset_cflags(cr);
 }
@@ -568,9 +714,8 @@ static void add_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     {
         // src: register (value: int64_t bit map)
         // dst: register (value: int64_t bit map)
-        uint64_t val = *(uint64_t *)src + *(uint64_t *)src;
-
-        // set condition flags
+        uint64_t val = (*(uint64_t *)src) + (*(uint64_t *)dst);
+        // set condition flag
 
         // update registers
         *(uint64_t *)dst = val;
@@ -616,6 +761,7 @@ void instruction_cycle(core_t *cr)
     // DECODE: decode the rum-time instruction operands
     inst_t inst;
     parse_instruction(inst_str, &inst, cr);
+    // printf("[debug]Inst: %s\n", inst_str);
 
     // EXCUTE: get the function pointer or handler by the operator
     handler_t handler = handler_table[inst.op];
@@ -669,8 +815,14 @@ void print_stack(core_t *cr)
 
 
 
-// Test function: void parse_operand();
+/*==================================================*/
+/*              Test function Start                 */ 
+/*       1. Declaration                             */
 void TestParseOperand();
+void TestParseInstruction();
+
+
+/*       2. Implementation                          */
 void TestParseOperand()
 {
     printf("isa start------------>\n");
@@ -710,6 +862,40 @@ void TestParseOperand()
 
     printf("isa end-------------->\n");
 }
+
+void TestParseInstruction()
+{
+    printf("Test Instruction start-------->\n");
+    ACTIVE_CORE = 0x0;
+    core_t *ac = (core_t *)&cores[ACTIVE_CORE];
+
+    char assembly[15][MAX_INSTRUCTION_CHAR] = {
+        "push   %rbp",              // 0
+        "mov    %rsp,%rbp",         // 1
+        "mov    %rdi,-0x18(%rbp)",  // 2
+        "mov    %rsi,-0x20(%rbp)",  // 3
+        "mov    -0x18(%rbp),%rdx",  // 4
+        "mov    -0x20(%rbp),%rax",  // 5
+        "add    %rdx,%rax",         // 6
+        "mov    %rax,-0x8(%rbp)",   // 7
+        "mov    -0x8(%rbp),%rax",   // 8
+        "pop    %rbp",              // 9
+        "retq",                     // 10
+        "mov    %rdx,%rsi",         // 11
+        "mov    %rax,%rdi",         // 12
+        "callq  0",                 // 13
+        "mov    %rax,-0x8(%rbp)",   // 14
+    };
+
+    inst_t inst;
+    for(int i = 0; i < 15; i ++ )
+    {
+        parse_instruction(assembly[i], &inst, ac);
+    }
+    printf("Test Instruction end---------->\n");
+}
+/*              Test function End                   */ 
+/*==================================================*/
 
 
 

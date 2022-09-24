@@ -55,8 +55,8 @@ void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr)
     {
         // write tp DRAM directly
         // little-endian
-        pm[paddr + 0] = (data >> 0) & 0xff;
-        pm[paddr + 1] = (data >> 8) & 0xff;
+        pm[paddr + 0] = (data >> 0 ) & 0xff;
+        pm[paddr + 1] = (data >> 8 ) & 0xff;
         pm[paddr + 2] = (data >> 16) & 0xff;
         pm[paddr + 3] = (data >> 24) & 0xff;
         pm[paddr + 4] = (data >> 32) & 0xff;

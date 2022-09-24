@@ -1,12 +1,16 @@
 ## After refactory by responsitory assembly
 
 ### 9.22 
-complete initation after refactory, can run first instruction, then go core dupmed, because we haven't accomplish parse work.
+The first code refactoring is completed, and the assembler can be successfully run, however, we haven't implemented the relevant function yet, so the assembler will end abnormally(core dumped) after first statement is excuted.
 
 ### 9.23
-complete function: string2uint_range.
+Complete function: String2Uint_range.
 
-optimization CPU_Flags by using c-bit-operation, we can only use one 64uint but four 64uint to represent Flags
+Optimization CPU_Flags by using C language bit operation, we can represent four flags with only one uint64 instead of four uint64.
 
-complete inst-parse and operand-parse
+Complete function: Inst_parse and Operand_parse
 
+### 9.24
+Complete the parsing of an assemlby instruction, and separate out the instruction and operands
+
+After a long time to debug, the program can finally run the assembler which executes the add(a+b) function, and test success.
