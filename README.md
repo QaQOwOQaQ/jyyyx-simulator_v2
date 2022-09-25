@@ -19,7 +19,10 @@ Complete the parsing of an assemlby instruction, and separate out the instructio
 After a long time to debug, the program can finally run the assembler which executes the add(a+b) function, and test success.
 
 I even reset the cpu_flags after I modifying the flags in the function jump_handler, which caused the execution to fail when jump returned to function main. After fixing this bug, the program can run the recursive get-sum assembler successfullu. So far, the first stage of the assembly simulator -- the instruction part is basically done.
+<<<<<<< HEAD:README.md
 
 
 ### 9.25
 Modify TestAddfunction to story instructions in programs'memory but simulator's memory and run successfully. Now, part1 for instruction is done and we will continue to the next section -- memory system. mainly dealing with cache system.
+=======
+>>>>>>> 7b25ec7b1537248f871da4e83a072ec9c2846445:readme.md
