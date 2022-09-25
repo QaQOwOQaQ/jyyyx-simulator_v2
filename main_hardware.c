@@ -34,7 +34,7 @@ int main()
     // TestString2Uint();                       // Success
     // TestParseOperand();                      // Success
     // TestParseInstruction();                  // Success
-    // TestAddFunctionCallAndComputation();     // Success
+    TestAddFunctionCallAndComputation();     // Success
     TestSumRecursiveCondition();
     
     printf("main end success============>\n");  // Success
@@ -141,11 +141,17 @@ static void TestAddFunctionCallAndComputation()
         "retq",                     // 10
         "mov    %rdx,%rsi",         // 11: main entry point
         "mov    %rax,%rdi",         // 12:
-        "callq  0",                 // 13: 0 means assembly[0]
+        "callq  0x400000",                 // 13: 0 means assembly[0]
         "mov    %rax,-0x8(%rbp)",   // 14
     };  
-    ac->rip = (uint64_t)&assembly[11];
-    sprintf(assembly[13], "callq  $%p", &assembly[0]);
+    for (int i = 0; i < 15; ++ i)
+    {
+        // write instructions in physical memory
+        // *40 means a instruction's length is 64(fixed length)
+        writeinst_dram(va2pa(i * 0x40 + 0x00400000, ac), assembly[i], ac);
+    }
+    ac->rip = MAX_INSTRUCTION_CHAR * sizeof(char) * 11 + 0x00400000;
+    // sprintf(assembly[13], "callq  $%p", &assembly[0]);
     
     print_register(ac);
     printf("Assemble Program Begin Run----->\n");
