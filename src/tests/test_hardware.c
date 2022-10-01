@@ -34,8 +34,8 @@ int main()
     // TestString2Uint();                       // Success
     // TestParseOperand();                      // Success
     // TestParseInstruction();                  // Success
-    TestAddFunctionCallAndComputation();     // Success
-    TestSumRecursiveCondition();
+    // TestAddFunctionCallAndComputation();     // Success
+    // TestSumRecursiveCondition();             // Success
     
     printf("main end success============>\n");  // Success
     return 0;

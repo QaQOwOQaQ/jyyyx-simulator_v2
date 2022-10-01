@@ -1,22 +1,33 @@
-CFLAGS = -Wall -g -O2 -std=gnu99 -Wno-unused-function
+CC = gcc
 
-EXE_HARDWARE = exe_hardware
+CFLAGS = -Wall -g -O2 -Werror -std=gnu99 -Wno-unused-function
+
+BIN_HARDWARE = ./bin/test_hadrware
+BIN_ELF      = ./bin/test_elf
+
+SRC_DIR = ./src
 
 # debug
-COMMON = common/print.c  common/convert.c
+COMMON = $(SRC_DIR)/common/print.c  $(SRC_DIR)/common/convert.c
 
 # hardware
-CPU = hardware/cpu/mmu.c hardware/cpu/isa.c
-MEMORY = hardware/memory/dram.c
+CPU = $(SRC_DIR)/hardware/cpu/mmu.c $(SRC_DIR)/hardware/cpu/isa.c
+MEMORY = $(SRC_DIR)/hardware/memory/dram.c
 
 # main
-MAIN_HARDWARE = main_hardware.c
+TEST_HARDWARE = $(SRC_DIR)/tests/test_hardware.c
+TEST_ELF      = $(SRC_DIR)/tests/test_elf.c
+
 
 .PHONY:hardware
 hardware:
-	clear
-	gcc $(CFLAGS)  $(MEMORY) $(COMMON) $(CPU) $(MAIN_HARDWARE) -o $(EXE_HARDWARE)
-	./$(EXE_HARDWARE)
+	$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON) $(CPU) $(MEMORY) $(TEST_HARDWARE) -o $(BIN_HARDWARE)
+	./$(BIN_HARDWARE)
+
+./PHONY:link
+link:
+	$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON)  $(SRC_DIR)/linker/parseELF.c $(TEST_ELF) -o $(BIN_ELF)
+	./$(BIN_ELF)
 
 clean:
-	rm -f *.o *~ $(EXE_HARDWARE)
+	rm -f *.o *~ $(BIN_HARDWARE) $(BIN_ELF)
