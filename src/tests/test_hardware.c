@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
-#include "headers/cpu.h"
-#include "headers/memory.h"
-#include "headers/common.h"
+#include <headers/cpu.h>
+#include <headers/memory.h>
+#include <headers/common.h>
 
 #define MAX_NUM_INSTRUCTION_CYCLE 100
 

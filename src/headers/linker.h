@@ -9,10 +9,10 @@
 /*      Section Header Table      */
 /*================================*/
 
-#define MAX_CHAR_SRCTION_NAME (32) // a good hobby to add a barckets
+#define MAX_CHAR_SECTION_NAME (32) // a good hobby to add a barckets
 typedef struct  
 {
-    char sh_name[MAX_CHAR_SRCTION_NAME];
+    char sh_name[MAX_CHAR_SECTION_NAME];
     uint64_t sh_addr;
     uint64_t sh_offset; // line offset or effective line index 我们这里的偏移都是以行为单位的，因为每个条目都占一行
     uint64_t sh_size;
@@ -44,7 +44,7 @@ typedef struct
     char st_name[MAX_CHAR_SYMBOL_NAME];
     st_bind_t bind;
     st_type_t type;
-    char st_shndx[MAX_CHAR_SRCTION_NAME]; // is a good way to use string to complete ??
+    char st_shndx[MAX_CHAR_SECTION_NAME]; // is a good way to use string to complete ??
     uint64_t st_value;  // in-section offset
     uint64_t st_size;   // count of lines of symbol
 } st_entry_t;
@@ -72,5 +72,7 @@ typedef struct
 
 void parse_elf(char *filename, elf_t *elf);
 void free_elf(elf_t *elf);
+void link_elf(elf_t **srcs, int num_srcs, elf_t *dst);
+
 
 #endif

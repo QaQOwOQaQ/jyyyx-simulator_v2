@@ -34,3 +34,5 @@ Successfully put the content of the ELF file(sum.elf.txt) in buf.
 
 ### 10.3
 parse elf with symbol table and fix some bug in parseELF.c
+
+complete symbol confilict by three rules
