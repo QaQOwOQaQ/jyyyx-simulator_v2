@@ -60,10 +60,17 @@ typedef struct
 {
     char buffer[MAX_ELF_FILE_LENGTH][MAX_ELF_FILE_WIDTH]; // 很浪费空间，但是一切为了简单
     uint64_t line_count;
+    
+    uint64_t sht_count;
     sh_entry_t *sht;
     
+    uint64_t symt_count; // symbol table 
+    st_entry_t *symt;
 } elf_t;
 
 
+
+void parse_elf(char *filename, elf_t *elf);
+void free_elf(elf_t *elf);
 
 #endif

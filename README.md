@@ -31,3 +31,6 @@ The location of the test functions has been modify, and now the are places in th
 Modify the location of the executable object file and placed it in the bin folder.
 
 Successfully put the content of the ELF file(sum.elf.txt) in buf.
+
+### 10.3
+parse elf with symbol table and fix some bug in parseELF.c
