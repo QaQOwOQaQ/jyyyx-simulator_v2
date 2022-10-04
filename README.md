@@ -36,3 +36,6 @@ Successfully put the content of the ELF file(sum.elf.txt) in buf.
 parse elf with symbol table and fix some bug in parseELF.c
 
 complete symbol confilict by three rules
+
+### 10.4
+before section merge, I don't understand it next, so I will make a mark here and watch vedio again.
