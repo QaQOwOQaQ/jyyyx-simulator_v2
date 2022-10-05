@@ -39,3 +39,6 @@ complete symbol confilict by three rules
 
 ### 10.4
 before section merge, I don't understand it next, so I will make a mark here and watch vedio again.
+ 
+### 10.5
+大致理解了静态链接代码，重定位部分还不太清楚

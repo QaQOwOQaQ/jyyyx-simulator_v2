@@ -42,4 +42,8 @@ uint32_t uint2float(uint32_t u);
 uint64_t string2uint(const char *str);
 uint64_t string2uint_range(const char *str, int start, int end);
 
+
+// common shared variables
+#define MAX_INSTRUCTION_CHAR 64
+
 #endif

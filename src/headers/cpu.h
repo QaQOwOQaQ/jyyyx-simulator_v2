@@ -195,6 +195,7 @@ typedef union CPU_FLAGS_STRUCT {
         uint16_t OF;
     };
 } cpu_flag_t;
+cpu_flag_t cpu_flags;
 
 typedef struct CORE_STRUCT 
 {
