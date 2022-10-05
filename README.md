@@ -1,44 +1,42 @@
-## After refactory by responsitory assembly
+## 新的开始 -- 重构旧汇编模拟器
 
 ### 9.22 
-The first code refactoring is completed, and the assembler can be successfully run, however, we haven't implemented the relevant function yet, so the assembler will end abnormally(core dumped) after first statement is excuted.
+（1）在旧的汇编模拟器基础上进行了第一次重构，并且测试程序可以成功运行。
+（2）一些相关函数还没有实现，因此程序会在执行完第一条指令后挂掉(coredump)。
 
 
 ### 9.23
-Complete function: String2Uint_range.
+（1）实现函数：string2uint_range()。
+（2）实现函数：inst_parse()。
+（3）实现函数：operand_parse()。
+（4）优化了cpu的flag位，原本的实现是一个flag位占用一个uint64，一共需要4个uint64，现在通过struct和union只需要一个uint64就可以表示4个flag位。
 
-Optimization cpu_flags by using C language bit operation, we can represent four flags with only one uint64 instead of four uint64.
-
-Complete function: Inst_parse and Operand_parse
 
 
 ### 9.24
-Complete the parsing of an assemlby instruction, and separate out the instruction and operands
-
-After a long time to debug, the program can finally run the assembler which executes the add(a+b) function, and test success.
-
-I even reset the cpu_flags after I modifying the flags in the function jump_handler, which caused the execution to fail when jump returned to function main. After fixing this bug, the program can run the recursive get-sum assembler successfullu. So far, the first stage of the assembly simulator -- the instruction part is basically done.
+（1）完成了堆汇编指令的解析，并分离出指令和操作数。
+（2）经过调试和debug，程序可以成功测试汇编程序add。
+（3）程序可以成功运行递归程序sum。
+（4）至此，汇编模拟器的第一阶段----指令部分基本完成。
 
 
 ### 9.25
-Modify TestAddfunction to story instructions in programs'memory but simulator's memory and run successfully. Now, part1 for instruction is done and we will continue to the next section -- memory system. mainly dealing with cache system.
+（1）修改函数：TestAddfunction（）。使得可以把程序指令存储在程序的内存当中而不是我们的汇编模拟器的内存当中。并且测试成功。
+（2）现在，汇编模拟器的第一阶段----指令部分圆满完成。
 
 
-## Starta new chapter -- link
+## 新篇章 -- 链接
 ### 10.1
-The location of the test functions has been modify, and now the are places in the tests folder.
-
-Modify the location of the executable object file and placed it in the bin folder.
-
-Successfully put the content of the ELF file(sum.elf.txt) in buf.
+（1）对代码完成了一次小重构：增加了bin文件夹(放置生成的可执行文件)和test文件夹(放置测试程序)。
+（2）成功将ELF文件的内容读取到我们开辟的内存空间buffer中。
 
 ### 10.3
-parse elf with symbol table and fix some bug in parseELF.c
-
-complete symbol confilict by three rules
+（1）完成了对ELF文件的解析。
+（2）完成了对重复符号的决议（符号解析三个规则）。
 
 ### 10.4
-before section merge, I don't understand it next, so I will make a mark here and watch vedio again.
+（1）静态链接部分和重定位部分相当迷糊，需要停下动态链接部分，接下来需要再对这两个部分加深印象。   
  
 ### 10.5
-大致理解了静态链接代码，重定位部分还不太清楚
+（1）对符号解析和静态链接重写，整体上对代码框架更加熟悉了。
+（2）对重定位的相关内容还不太了解，需要回顾。
