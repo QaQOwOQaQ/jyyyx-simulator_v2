@@ -13,22 +13,23 @@
 /*  if we can use a bit express one thing       */
 /*  so we can use a number expree lots of thing */
 
-#define DEBUG_INSTRUCTIONCYCLE      0x1     // instruction_cycle
-#define DEBUG_REGISTERS             0X2     // registers
-#define DEBUG_PRINTSTACK            0x4     // print_stack
-#define DEBUG_PRINTCACHESET         0X8     // print_cache_set
-#define DEBUG_MMU                   0x10    // mmu
-#define DEBUG_LINKER                0X40    // linker
-#define DEBUG_LOADER                0x80    // loader
-#define DEBUG_PARSEINST             0x100   // parse_inst
+#define DEBUG_INSTRUCTIONCYCLE      (0x1)     // instruction_cycle
+#define DEBUG_REGISTERS             (0X2)     // registers
+#define DEBUG_PRINTSTACK            (0x4)     // print_stack
+#define DEBUG_PRINTCACHESET         (0X8)     // print_cache_set
+#define DEBUG_MMU                   (0x10)    // mmu
+#define DEBUG_LINKER                (0X40)    // linker
+#define DEBUG_LOADER                (0x80)    // loader
+#define DEBUG_PARSEINST             (0x100)   // parse_inst
+#define DEBUG_DATASTRUCTURE         (0x200)   // algorithm
 
-#define DEBUG_VERBOSE_SET           0x41     // debug switch for debug_type  
+#define DEBUG_VERBOSE_SET           (0x41)     // debug switch for debug_type  
 
 // do page walk
-#define DEBUG_ENABLE_PAGE_WALK      0
+#define DEBUG_ENABLE_PAGE_WALK      (0)
 
 // use SRAM Cache for Memory acces
-#define DEBUG_ENABLE_SRAM_CACHE     0
+#define DEBUG_ENABLE_SRAM_CACHE     (0)
 
 // print warpper
 uint64_t debug_print(uint64_t open_set, const char *format, ... );
@@ -44,6 +45,6 @@ uint64_t string2uint_range(const char *str, int start, int end);
 
 
 // common shared variables
-#define MAX_INSTRUCTION_CHAR 64
+#define MAX_INSTRUCTION_CHAR (64)
 
 #endif
