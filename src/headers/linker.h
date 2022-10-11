@@ -6,7 +6,7 @@
 
 #define MAX_CHAR_SECTION_NAME (32)
 
-typedef struct 
+typedef struct  // 节头部表条目
 {
     char sh_name[MAX_CHAR_SECTION_NAME];
     uint64_t sh_addr;   // run-time address, elf is not loaded, so the run-time address is 0.(运行时地址)
@@ -30,7 +30,7 @@ typedef enum
     STT_FUNC
 } st_type_t; // symbol table type
 
-typedef struct 
+typedef struct // 符号表条目
 {
     char st_name[MAX_CHAR_SECTION_NAME];
     st_bind_t bind; // binding：约束(，捆绑，结合, ...)
@@ -93,6 +93,6 @@ typedef struct
 void parse_elf(char *filename, elf_t *elf);
 void free_elf(elf_t *elf);
 void link_elf(elf_t **srcs, int num_srcs, elf_t *dst);
-
+void write_eof(const char *filename, elf_t *eof);
 
 #endif 

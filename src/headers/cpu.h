@@ -272,5 +272,6 @@ void instruction_cycle(core_t *cr);
 // each MU is owned by each core
 uint64_t va2pa(uint64_t vaddr, core_t *cr);
 
+
 // end of include guard
 #endif

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <headers/common.h>
 #include <headers/linker.h>
+#include <headers/instruction.h>
 
 #define MAX_SYMBOL_MAP_LENGTH (64)      
 #define MAX_SECTION_BUFFER_LENGTH (64)  
@@ -51,18 +52,17 @@ static void R_X86_64_32_handler(elf_t *dst, sh_entry_t *sh,
 static void R_X86_64_PC32_handler(elf_t *dst, sh_entry_t *sh,
     int row_referencing, int col_referencing, int addend,
     st_entry_t *sym_referenced);
-static void R_X86_64_PLT32_handler(elf_t *dst, sh_entry_t *sh,
-    int row_referencing, int col_referencing, int addend,
-    st_entry_t *sym_referenced);
 
 typedef void(*rela_handler_t)(elf_t *dst, sh_entry_t *sh,
     int row_referencing, int col_referencing, int addend,
     st_entry_t *sym_referenced);
 
 static rela_handler_t handler_table[3] = {
-    &R_X86_64_32_handler,
-    &R_X86_64_PC32_handler,
-    &R_X86_64_PLT32_handler
+    &R_X86_64_32_handler,       // 0
+    &R_X86_64_PC32_handler,     // 1
+    // linux commit b21ebf2: x86: Treat R_X86_64_PLT32 as R_X86_64_PC32
+    // https://github.com/torvalds/linux/commit/b21ebf2fb4cde1618915a97cc773e287ff49173e
+    &R_X86_64_PC32_handler,     // 2 PLT32 <==> PC32
 };
 
 /* ------------------------------------ */
@@ -751,22 +751,113 @@ static void relocation_processing(elf_t **srcs, int num_srcs, elf_t *dst,
 
 
 // relocation handlers
+static uint64_t get_symbol_runtime_address(elf_t *dst, st_entry_t *sym)
+{
+    // TODO: get the run-time address of symbol
+    // 首先要说明的是，我们的计算模型和官方的不一样
+    // 在标准形式的elf中，如果两个符号的地址原本相差0x18，那么在加载之后依然是0x18
+    // 但是我们的不一样，因为我们用一些结构体封装了一些信息，导致他们之间的大小发生了变化 
+    // 更具体的来说，是每个条目的大小发生了变化
+    // 例如汇编指令被我们封装在 inst_t 中
+    // 可能原本两条汇编指令的地址相差 0x8
+    // 现在变成了 sizeof(inst_t)，并且是定长的
+    // 所有指令定长不太合适，哎，谁让我们的模型简单呢
 
+    /*  ----------------------高地址 -------------------*/
+    /* |--------------------| ：不考虑                  */
+    /* |--------bss---------| ：不占空间                */
+    /* |--------data--------| ：每个条目uint64_t，8字节  */
+    /* |--------rodata------| ：每个条目uint64_t，8字节  */
+    /* |--------text--------| ：每个条目sizeof(inst_t)  */
+    /*  ----------------------低地址 ------------------ */
+
+    // 从我们的简易模型中可以看出，如果想计算data节中的符号信息，就必须先计算出text和rodata节的总偏移：enyry_count * sizeof(entry)
+    
+    uint64_t base = 0x00400000;
+
+    uint64_t text_base = base;
+    uint64_t rodata_base = base;
+    uint64_t data_base = base;
+
+    int inst_size = sizeof(inst_t);
+    int data_size = sizeof(uint64_t);
+
+    // 先计算elf文件中每个section的偏移地址
+    // must visit in .text, .rodata, .data in order
+    sh_entry_t *sht = dst->sht;
+    for(int i = 0; i < dst->sht_count; i ++ )
+    {
+        if(strcmp(sht[i].sh_name, ".text") == 0)
+        {
+            rodata_base = text_base + sht[i].sh_size * inst_size;
+            data_base = rodata_base; // 其实就是不知道
+        }
+        else if(strcmp(sht[i].sh_name, ".rodata") == 0)
+        {
+            data_base = rodata_base + sht[i].sh_size * data_size;
+        }
+    }
+
+    // 通过上面计算得到的section地址和当前符号在符号在section中的偏移(st_value)
+    // 在我们的模型中，偏移量是根据行数确定的，太简陋了hh
+    // check this symbol section
+    if(strcmp(sym->st_shndx, ".text") == 0)
+    {
+        return text_base + inst_size * sym->st_value;
+    }
+    else if(strcmp(sym->st_shndx, ".rodata") == 0)
+    {
+        return rodata_base + data_base * sym->st_value;
+    }   
+    else if(strcmp(sym->st_shndx, ".data") == 0)
+    {
+        return data_base + data_size * sym->st_value;
+    }
+    
+    // never go there
+    printf("You shoud not go there wht get the symbol's run-time address!And you \n");
+    return 0xFFFFFFFFFFFFFFFF;
+}
+
+static void write_relocation(char *dst, uint64_t val)
+{
+    char temp[20];
+    sprintf(temp, "0x%016lx", val); // 这里不能直接sprintf到s中，因为sprintf会在字符串末尾添加'\0'结束导致数字后面的字符无法显示
+    for(int i = 0; i < 18; i ++ )
+    {
+        dst[i] = temp[i];
+    }
+}
+
+// 绝对寻址??
 static void R_X86_64_32_handler(elf_t *dst, sh_entry_t *sh, int row_referencing, int col_referencing, int addend, st_entry_t *sym_referenced)
 {
-    printf("row = %d, col = %d, symbol referenced = %s\n", 
-        row_referencing, col_referencing, sym_referenced->st_name);
+    // DEBUG message
+    // printf("row = %d, col = %d, symbol referenced = %s\n", 
+    //     row_referencing, col_referencing, sym_referenced->st_name);
+        
+    uint64_t sym_address = get_symbol_runtime_address(dst, sym_referenced);
+    char *s = &dst->buffer[sh->sh_offset + row_referencing][col_referencing]; // 段在buffer中的偏移加上该行在段中的偏移就是该行在buffer中的偏移
+    write_relocation(s, sym_address);
+
+    // DEBUG message
+    // for(int i = 0; i < 18; i ++ )  
+    // {
+    //     s[i] = '?';
+    // }
 }
 
+// PC32 等价于?? PLT32,,, PC相对寻址???
 static void R_X86_64_PC32_handler(elf_t *dst, sh_entry_t *sh, int row_referencing, int col_referencing, int addend, st_entry_t *sym_referenced)
 {
-    printf("row = %d, col = %d, symbol referenced = %s\n", 
-        row_referencing, col_referencing, sym_referenced->st_name);    
-}
-static void R_X86_64_PLT32_handler(elf_t *dst, sh_entry_t *sh, int row_referencing, int col_referencing, int addend, st_entry_t *sym_referenced)
-{
-    printf("row = %d, col = %d, symbol referenced = %s\n", 
-        row_referencing, col_referencing, sym_referenced->st_name);
+    assert(strcmp(sh->sh_name, ".text") == 0);
+    uint64_t sym_address = get_symbol_runtime_address(dst, sym_referenced);
+    uint64_t rip_value = 0x00400000 + (row_referencing + 1) * sizeof(inst_t); // 因为我们算的是下一条指令的地址，所以有+1操作
+
+    char *s = &dst->buffer[sh->sh_offset + row_referencing][col_referencing]; // 段在buffer中的偏移加上该行在段中的偏移就是该行在buffer中的偏移
+    // rip + x = addr --> x = addr - rip
+    // printf("debug!!!!!: %16lx\n", sym_address - rip_value);
+    write_relocation(s, sym_address - rip_value);   //  - rip_value 
 }
 
 static const char *get_stb_string(st_bind_t bind)

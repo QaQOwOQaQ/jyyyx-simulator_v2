@@ -22,6 +22,10 @@ int main()
     elf_t *srcp[2] = {&src[0], &src[1]};
     link_elf((elf_t **)&srcp, 2, &dst);
     printf("-----------------link success--------------------\n");
+
+    write_eof("./files/exe/output.eof.txt", &dst);
+    printf("-----------------write eof success--------------------\n");
+
     free_elf(&src[0]);
     free_elf(&src[1]);
     free_elf(&dst);
