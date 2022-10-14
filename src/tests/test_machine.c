@@ -16,8 +16,8 @@ void TestParseOperand();        // define at file isa.c
 void TestParseInstruction();    // define at file isa.c
 
 // interface
-void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr);
-uint64_t read64bits_dram(uint64_t paddr, core_t *cr);
+void cpu_write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr);
+uint64_t cpu_read64bits_dram(uint64_t paddr, core_t *cr);
 /*          Ending               */
 /*===============================*/
 
@@ -101,20 +101,20 @@ static void TestAddFunctionCallAndComputation()
     ac->flags.ZF = 0;
     ac->flags.SF = 0;
     
-    write64bits_dram(va2pa(0x7fffffffe3a0, ac), 0x0000000000000000, ac);    // rbp
-    write64bits_dram(va2pa(0x7fffffffe3a8, ac), 0x0000000012340000, ac);
-    write64bits_dram(va2pa(0x7fffffffe3b0, ac), 0x000000000000abcd, ac);
-    write64bits_dram(va2pa(0x7fffffffe3b8, ac), 0x0000000000000000, ac);
-    write64bits_dram(va2pa(0x7fffffffe3c0, ac), 0x0000000000000000, ac);    // rsp
+    cpu_write64bits_dram(va2pa(0x7fffffffe3a0, ac), 0x0000000000000000, ac);    // rbp
+    cpu_write64bits_dram(va2pa(0x7fffffffe3a8, ac), 0x0000000012340000, ac);
+    cpu_write64bits_dram(va2pa(0x7fffffffe3b0, ac), 0x000000000000abcd, ac);
+    cpu_write64bits_dram(va2pa(0x7fffffffe3b8, ac), 0x0000000000000000, ac);
+    cpu_write64bits_dram(va2pa(0x7fffffffe3c0, ac), 0x0000000000000000, ac);    // rsp
 
     /*          debug begin             */
     /*
     printf("debug begin test physical address-value---------------------->\n");
-    printf("!!!!a0-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3a0, ac), ac))); 
-    printf("!!!!a8-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac))); 
-    printf("!!!!b0-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3b0, ac), ac))); 
-    printf("!!!!c8-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3b8, ac), ac))); 
-    printf("!!!!c0-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3c0, ac), ac))); 
+    printf("!!!!a0-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3a0, ac), ac))); 
+    printf("!!!!a8-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac))); 
+    printf("!!!!b0-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3b0, ac), ac))); 
+    printf("!!!!c8-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3b8, ac), ac))); 
+    printf("!!!!c0-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3c0, ac), ac))); 
     printf("debug end test physical address-value------------------------->\n");
     */
     /*          debug end               */
@@ -148,7 +148,7 @@ static void TestAddFunctionCallAndComputation()
     {
         // write instructions in physical memory
         // *40 means a instruction's length is 64(fixed length)
-        writeinst_dram(va2pa(i * 0x40 + 0x00400000, ac), assembly[i], ac);
+        cpu_writeinst_dram(va2pa(i * 0x40 + 0x00400000, ac), assembly[i], ac);
     }
     ac->rip = MAX_INSTRUCTION_CHAR * sizeof(char) * 11 + 0x00400000;
     // sprintf(assembly[13], "callq  $%p", &assembly[0]);
@@ -190,16 +190,16 @@ static void TestAddFunctionCallAndComputation()
         printf("register mismatch\n");
     }
 
-    match = match && (read64bits_dram(va2pa(0x7fffffffe3a0, ac), ac) == 0x0000000000000000); // rbp
-    if(!match)  { printf("!!!!a0-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3a0, ac), ac))); }
-    match = match && (read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac) == 0x0000000012340000);
-    if(!match)  { printf("!!!!a8-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac))); }
-    match = match && (read64bits_dram(va2pa(0x7fffffffe3b0, ac), ac) == 0x000000000000abcd);
-    if(!match)  { printf("!!!!b0-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3b0, ac), ac))); }
-    match = match && (read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac) == 0x0000000012340000);
-    if(!match)  { printf("!!!!b8-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3b8, ac), ac))); }
-    match = match && (read64bits_dram(va2pa(0x7fffffffe3c0, ac), ac) == 0x0000000000000000); // rsp
-    if(!match)  { printf("!!!!c0-> 0x%lx !\n", (read64bits_dram(va2pa(0x7fffffffe3c0, ac), ac))); }
+    match = match && (cpu_read64bits_dram(va2pa(0x7fffffffe3a0, ac), ac) == 0x0000000000000000); // rbp
+    if(!match)  { printf("!!!!a0-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3a0, ac), ac))); }
+    match = match && (cpu_read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac) == 0x0000000012340000);
+    if(!match)  { printf("!!!!a8-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac))); }
+    match = match && (cpu_read64bits_dram(va2pa(0x7fffffffe3b0, ac), ac) == 0x000000000000abcd);
+    if(!match)  { printf("!!!!b0-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3b0, ac), ac))); }
+    match = match && (cpu_read64bits_dram(va2pa(0x7fffffffe3a8, ac), ac) == 0x0000000012340000);
+    if(!match)  { printf("!!!!b8-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3b8, ac), ac))); }
+    match = match && (cpu_read64bits_dram(va2pa(0x7fffffffe3c0, ac), ac) == 0x0000000000000000); // rsp
+    if(!match)  { printf("!!!!c0-> 0x%lx !\n", (cpu_read64bits_dram(va2pa(0x7fffffffe3c0, ac), ac))); }
 
     if (match)
     {
@@ -228,9 +228,9 @@ static void TestSumRecursiveCondition()
 
     cr->flags.__cpu_flag_value = 0;
    
-    write64bits_dram(va2pa(0x7ffffffee230, cr), 0x0000000008000650, cr);    // rbp
-    write64bits_dram(va2pa(0x7ffffffee228, cr), 0x0000000000000000, cr);
-    write64bits_dram(va2pa(0x7ffffffee220, cr), 0x00007ffffffee310, cr);    // rsp
+    cpu_write64bits_dram(va2pa(0x7ffffffee230, cr), 0x0000000008000650, cr);    // rbp
+    cpu_write64bits_dram(va2pa(0x7ffffffee228, cr), 0x0000000000000000, cr);
+    cpu_write64bits_dram(va2pa(0x7ffffffee220, cr), 0x00007ffffffee310, cr);    // rsp
 
         char assembly[19][MAX_INSTRUCTION_CHAR] = {
         "push   %rbp",              // 0
@@ -259,7 +259,7 @@ static void TestSumRecursiveCondition()
     {
         // write instructions in physical memory
         // *40 means a instruction's length is 64(fixed length)
-        writeinst_dram(va2pa(i * 0x40 + 0x00400000, cr), assembly[i], cr);
+        cpu_writeinst_dram(va2pa(i * 0x40 + 0x00400000, cr), assembly[i], cr);
     }
     cr->rip = MAX_INSTRUCTION_CHAR * sizeof(char) * 16 + 0x00400000;
     
@@ -293,9 +293,9 @@ static void TestSumRecursiveCondition()
         printf("register mismatch\n");
     }
 
-    match = match && (read64bits_dram(va2pa(0x7ffffffee230, cr), cr) == 0x0000000008000650); // rbp
-    match = match && (read64bits_dram(va2pa(0x7ffffffee228, cr), cr) == 0x0000000000000006);
-    match = match && (read64bits_dram(va2pa(0x7ffffffee220, cr), cr) == 0x00007ffffffee310); // rsp
+    match = match && (cpu_read64bits_dram(va2pa(0x7ffffffee230, cr), cr) == 0x0000000008000650); // rbp
+    match = match && (cpu_read64bits_dram(va2pa(0x7ffffffee228, cr), cr) == 0x0000000000000006);
+    match = match && (cpu_read64bits_dram(va2pa(0x7ffffffee220, cr), cr) == 0x00007ffffffee310); // rsp
 
     if (match)
     {

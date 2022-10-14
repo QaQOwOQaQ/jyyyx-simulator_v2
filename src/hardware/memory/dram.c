@@ -6,7 +6,10 @@
 #include <headers/common.h>
 #include <headers/cpu.h>
 #include <headers/memory.h>
+#include <headers/address.h>
 
+void bus_read_cacheline (uint64_t paddr, uint8_t *block);
+void bus_write_cacheline(uint64_t paddr, uint8_t *block);
 
 /*
 Be careful with the x86-64 little-endian integer encoding
@@ -15,19 +18,25 @@ e.g. write 0x0000-7fd3-57a0-2ae0 to cache, the memory lapping should be:
 */
 
 
-/*======================================================*/
-/*                    meself:                           */
-/*          a address only can store 8 bit              */
-/* so we have to use eight address to store a 64bit data*/
-/*======================================================*/
+/*=======================================================*/
+/*                   by meself:                          */
+/*          a address only can store 8 bit               */
+/* so we have to use eight address to store a 64bit data */
+/*=======================================================*/
 
 // memory accessing used in struction
-uint64_t read64bits_dram(uint64_t paddr, core_t *cr)
+uint64_t cpu_read64bits_dram(uint64_t paddr)
 {
     if(DEBUG_ENABLE_SRAM_CACHE == 1)
     {
         // try to load uint64_t from SRAM cache
         // little-endian
+        uint64_t val = 0x0;
+        for(int i = 0; i < sizeof(uint64_t); i ++ )
+        {
+            val += (sram_cache_read(paddr + i) << (i * 8));
+        }
+        return val;
     }
     else
     {
@@ -47,12 +56,17 @@ uint64_t read64bits_dram(uint64_t paddr, core_t *cr)
     }
 }
 
-void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr)
+void cpu_write64bits_dram(uint64_t paddr, uint64_t data)
 {
-    if(DEBUG_ENABLE_SRAM_CACHE)
+    if(DEBUG_ENABLE_SRAM_CACHE == 1)
     {
         // try to write uint64_t to SRAM cache
         // little-endian
+        for(int i = 0; i < sizeof(uint64_t); i ++ )
+        {
+            sram_cache_write(paddr + i, (data >> i * sizeof(uint64_t)) & 0xFF);
+        }
+        return ;
     }
     else
     {
@@ -69,7 +83,7 @@ void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr)
     }
 }
 
-void readinst_dram(uint64_t paddr, char *buf, core_t *cr)
+void cpu_readinst_dram(uint64_t paddr, char *buf, core_t *cr)
 {
     for(int i = 0; i < MAX_INSTRUCTION_CHAR; i ++ )
     {
@@ -77,7 +91,7 @@ void readinst_dram(uint64_t paddr, char *buf, core_t *cr)
     }
 }
 
-void writeinst_dram(uint64_t paddr, const char *str, core_t *cr)
+void cpu_writeinst_dram(uint64_t paddr, const char *str, core_t *cr)
 {
     int len = strlen(str);
     assert(len <= MAX_INSTRUCTION_CHAR);
@@ -92,5 +106,30 @@ void writeinst_dram(uint64_t paddr, const char *str, core_t *cr)
         {
             pm[paddr + i] = 0;    
         }
+    }
+}
+
+
+/* interface of I/O Bus: read and write from cache between the SRAM cache and DRAM memory
+    每次总线(bus)传输我们都传输一个 cache block
+*/
+void bus_read_cacheline(uint64_t paddr, uint8_t *block)
+{
+    uint64_t dram_base = (paddr >> SRAM_CACHE_OFFSET_LENGTH) << SRAM_CACHE_OFFSET_LENGTH;       /*
+    将物理地址的偏移量部分置为0，即得到这个物理地址所在行的起始物理地址，因为我们每次往 cache 中读取或者写入的单位都是一行数据 */
+ 
+    for(int i = 0; i < (1 << SRAM_CACHE_OFFSET_LENGTH); i ++ ) // block 的大小
+    {
+       block[i] = pm[dram_base + i];
+    }
+}
+
+void bus_write_cacheline(uint64_t paddr, uint8_t *block)
+{
+    uint64_t dram_base = (paddr >> SRAM_CACHE_OFFSET_LENGTH) << SRAM_CACHE_OFFSET_LENGTH;
+
+    for(int i = 0; i < (1 << SRAM_CACHE_OFFSET_LENGTH); i ++ ) 
+    {
+       pm[dram_base + i] = block[i];
     }
 }

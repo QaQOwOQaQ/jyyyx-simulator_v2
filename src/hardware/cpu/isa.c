@@ -559,7 +559,7 @@ static void mov_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     {
         // src: register
         // dst: virtual address
-        write64bits_dram(va2pa(dst, cr), *(uint64_t *)src, cr);
+        cpu_write64bits_dram(va2pa(dst, cr), *(uint64_t *)src, cr);
         next_rip(cr);
         reset_cflags(cr);
         return ;
@@ -568,7 +568,7 @@ static void mov_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     {
         // src: virtual address
         // dst: register
-        *(uint64_t *)dst = read64bits_dram(va2pa(src, cr), cr);
+        *(uint64_t *)dst = cpu_read64bits_dram(va2pa(src, cr), cr);
         next_rip(cr);
         reset_cflags(cr);
         return ;
@@ -593,7 +593,7 @@ static void push_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // dst: empty
         (cr->reg).rsp = (cr->reg).rsp - 8;
         // do not write:cr->reg.rsp  **bug**
-        write64bits_dram(va2pa((cr->reg).rsp, cr), *(uint64_t *)src, cr);
+        cpu_write64bits_dram(va2pa((cr->reg).rsp, cr), *(uint64_t *)src, cr);
         next_rip(cr);
         reset_cflags(cr);
         return ;
@@ -608,7 +608,7 @@ static void pop_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     {
         // src: register
         // dst: empty
-        uint64_t old_val = read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
+        uint64_t old_val = cpu_read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
         (cr->reg).rsp = (cr->reg).rsp + 8;
         *(uint64_t *)src = old_val;
         next_rip(cr);
@@ -625,7 +625,7 @@ static void leave_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     // 1. moveq %rbp,%rsp
     // 2. pop %rbp
     (cr->reg).rsp = (cr->reg).rbp;         
-    uint64_t old_val = read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
+    uint64_t old_val = cpu_read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
     (cr->reg).rbp = old_val;
     (cr->reg).rsp = (cr->reg).rsp + 8;      
     next_rip(cr);
@@ -645,7 +645,7 @@ static void call_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     
     // push the return value
     (cr->reg).rsp = (cr->reg).rsp - 8;
-    write64bits_dram(va2pa((cr->reg).rsp, cr), cr->rip + sizeof(char) * MAX_INSTRUCTION_CHAR, cr);
+    cpu_write64bits_dram(va2pa((cr->reg).rsp, cr), cr->rip + sizeof(char) * MAX_INSTRUCTION_CHAR, cr);
 
     // jump to target function address
     // TODO: support PC relative addressing
@@ -659,7 +659,7 @@ static void ret_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     // dst: empty
     
     // pop rsp
-    uint64_t ret_addr = read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
+    uint64_t ret_addr = cpu_read64bits_dram(va2pa((cr->reg).rsp, cr), cr);
     (cr->reg.rsp) = (cr->reg).rsp + 8; /* debug 2 hour because I forget to add that sentense, why didn't change rsp when you got ret_addr*/
     cr->rip = ret_addr;
     reset_cflags(cr);
@@ -736,7 +736,7 @@ static void cmp_handler(od_t *src_od, od_t *dst_od, core_t * cr)
         // src: immediate
         // dst: access memory
         // cmp src dst --> dst-src --> s2+(-s1)
-        uint64_t dval = read64bits_dram(va2pa(dst, cr), cr);
+        uint64_t dval = cpu_read64bits_dram(va2pa(dst, cr), cr);
         uint64_t val = dval + (~src + 1);
 
         int val_sign = ((val  >> 63) & 0x1);
