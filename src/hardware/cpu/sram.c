@@ -48,7 +48,7 @@ else if miss，read memory and  write cache
 typedef enum // cache 行中的状态信息
 {
     CACHE_LINE_INVALID, // 设置为 invalid 更好判断
-    CACHE_LINE_CLEAN,
+    CACHE_LINE_CLEAN,   // In MESI: E, S
     CACHE_LINE_DIRTY   
 } sram_cacheline_state_t;
 
