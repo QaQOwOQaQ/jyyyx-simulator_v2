@@ -3,10 +3,5 @@
 *~
 /.vscode
 exe_hardware
-<<<<<<< HEAD
 /backup
 /bin
-=======
-ass_backup/*
-bin/*
->>>>>>> 245ffc3096f3a49cf54a88002db3adfb848c7e41
