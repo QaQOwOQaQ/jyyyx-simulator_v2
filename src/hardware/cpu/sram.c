@@ -13,7 +13,7 @@ uint8_t sram_cache_read(uint64_t paddr);
 void sram_cache_write(uint64_t paddr, uint8_t data);
 
 /* ========================  cache write policy  ============================
-For problen：CPU 修改了 cache 中数据的副本，如何保证主存中数据母本的一致性 -- cache write policy
+For problem：CPU 修改了 cache 中数据的副本，如何保证主存中数据母本的一致性 -- cache write policy
 
 Two cases:
 1.write hit：  
@@ -90,7 +90,7 @@ uint8_t sram_cache_read(uint64_t paddr_value)
         .paddr_value = paddr_value,
     };  // NB，这个初始化
 
-    sram_cacheset_t *set = &(cache.sets[paddr.CI]); // 得到这个物理地址所在的 set
+    sram_cacheset_t *set = &(cache.sets[paddr.ci]); // 得到这个物理地址所在的 st
 
     // update LRU time
     // 这部分相当于预处理，找到 invalid 的行和最久没使用的行方便后面 miss 时更新
@@ -122,13 +122,13 @@ uint8_t sram_cache_read(uint64_t paddr_value)
     {
         sram_cacheline_t line = set->lines[i];
         
-        if(line.state != CACHE_LINE_INVALID && line.tag == paddr.CT)
+        if(line.state != CACHE_LINE_INVALID && line.tag == paddr.ct)
         {
             // cache hit
             // find the byte    
             line.time = 0;
 
-            return line.block[paddr.CO];
+            return line.block[paddr.co];
         }
     }
 
@@ -147,9 +147,9 @@ uint8_t sram_cache_read(uint64_t paddr_value)
         invalid->time = 0;
 
         // update tag
-        invalid->tag = paddr.CT;
+        invalid->tag = paddr.ct;
 
-        return invalid->block[paddr.CO];
+        return invalid->block[paddr.co];
     }
 
     // 只要执行到这里，victim一定是非空的，因为如果victim真的为空
@@ -179,9 +179,9 @@ uint8_t sram_cache_read(uint64_t paddr_value)
     victim->time = 0;
 
     // update tag
-    victim->tag = paddr.CT;
+    victim->tag = paddr.ct;
 
-    return victim->block[paddr.CO];
+    return victim->block[paddr.co];
 }
 
 
@@ -193,7 +193,7 @@ void sram_cache_write(uint64_t paddr_value, uint8_t data)
             // 实际上通过掩码也可以实现，不过不方便
     }; 
 
-    sram_cacheset_t *set = &(cache.sets[paddr.CI]); // 只想该物理地址在 cache 中对应的 set
+    sram_cacheset_t *set = &(cache.sets[paddr.ci]); // 只想该物理地址在 cache 中对应的 set
 
     // 更新 LRU time 并找到 invalid 的行(没使用的行)和最久未使用的行
     sram_cacheline_t *victim = NULL;
@@ -224,13 +224,13 @@ void sram_cache_write(uint64_t paddr_value, uint8_t data)
         sram_cacheline_t *line = &(set->lines[i]);
 
         // cache hit，写回
-        if(line->state != CACHE_LINE_INVALID && line->tag == paddr.CT) 
+        if(line->state != CACHE_LINE_INVALID && line->tag == paddr.ct) 
         {
             // 更新 LRU time
             line->time = 0;
 
             // 将数据写入 cache
-            line->block[paddr.CO] = data;
+            line->block[paddr.co] = data;
 
             // 脏数据，更新 state
             line->state = CACHE_LINE_DIRTY;
@@ -245,8 +245,8 @@ void sram_cache_write(uint64_t paddr_value, uint8_t data)
         bus_read_cacheline(paddr.paddr_value, &(invalid->block)); // 将内存地址中的数据读入行的block
 
         invalid->state = CACHE_LINE_DIRTY; // 在 cache 中分配一行之后在 cache 中写，再根据写回法写入内存，所以并不一定写入内存，因此是脏数据 
-        invalid->tag = paddr.CT;
-        invalid->block[paddr.CO] = data;
+        invalid->tag = paddr.ct;
+        invalid->block[paddr.co] = data;
 
         return ;
     }
@@ -265,7 +265,7 @@ void sram_cache_write(uint64_t paddr_value, uint8_t data)
     bus_read_cacheline(paddr.address_value, &(victim->block));
     victim->state = CACHE_LINE_DIRTY;
     victim->time = 0;
-    victim->block[paddr.CO] = data;
+    victim->block[paddr.co] = data;
 }   
 
 

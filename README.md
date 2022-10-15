@@ -79,5 +79,8 @@
 （2）完成了 EMSI 协议：一个多线程（多cpu核心）下的控制指令的执行顺序和 cache 状态的改变以保证 **数据一致性** 的协议。真的是历经千辛万苦，写出重重 bug，克服重重 bug。（bug log 详见 mesi.c 文件末尾）
 
 ### 10.15
-（1）完成了 true sharing，false sharing，no sharing 的效率比较（test_false_sharing.c）。cache 部分终于完结了
-（2）
+（1）完成了 TrueSharing，FalseSharing，NoSharing 的效率比较（test_false_sharing.c）,但是测试结果不太正确，可能存在一些优化？？不过无关紧要，只需要了解 FalseSharing 导致低效率的特殊情况即可。那么，cache 部分终于完结了。接来下是多级页表和地址翻译部分。
+
+（2）修改 mmu 中的 va2pa 函数。不再使用取模的方法，而是更合理的页表。
+
+（3）实现了 Linux 四级页表地址翻译的相关数据结构，对页表的地址翻译的原理还不太清晰，指令集部分的代码重构要提上日程了。

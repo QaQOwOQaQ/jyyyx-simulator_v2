@@ -1,12 +1,8 @@
-// include guard to prevent double declaration of any identifiers
-
 #ifndef CPU_GUARD
 #define CPU_GUARD
 
 #include <stdint.h>
 #include <stdlib.h>
-
-
 
 
 /*=============================*/
@@ -197,68 +193,31 @@ typedef union CPU_FLAGS_STRUCT {
 } cpu_flag_t;
 cpu_flag_t cpu_flags;
 
-typedef struct CORE_STRUCT 
+// program count or instruction pointer
+typedef union
 {
-    // we build this new struct named core_t because we want to acomplish multicore cpu
-    // but it's too complex that I only acomplish sigle core version
-    // do not think this struct is useless!
+    uint64_t rip;
+    uint64_t eip;
+} cpu_pc_t;
+cpu_pc_t cpu_pc;
 
-    // program counter or instruction pointer
-    // cpu pecuilar register
-    // take it in cpu and take other universal registers in new struct names reg_t
-    union
-    {
-        uint64_t rip;
-        uint32_t eip;
-    };
-    
-    // universal register
-    /*================*/
-    /* register files */
-    /*================*/
-    reg_t reg;
-
-    // condition code flags of most recent(lastest) operation
-    // condition codes will only set by the following integer arthmetic instructions
-    
-    /* integer arthimetic instructions
-        inc     increment 1
-        dec     decrement 1
-        neg     negate
-        not     complemnt(~)
-        ------------------------------
-        add     add
-        sub     subtarct
-        xor     exclusive or
-        or      or
-        and     and
-        ------------------------------
-        sal     left  shift(arthimetic, fill with sign)
-        sar     right shift
-        shl     left  shift(logical, fill with 0)
-        shr     right shift
-    */
-
-    /* comparsion and test instruction
-        cmp     compare
-        test    test
-    */
-    cpu_flag_t  flags;
-
-} core_t;
-
-// define cpu core array to support core level parallelism
-#define NUM_CORES 1
-core_t cores[NUM_CORES];
-
-// active core for current tast
-uint64_t ACTIVE_CORE;
+// control registers
+typedef struct 
+{
+    uint64_t cr0;
+    uint64_t cr1;
+    uint64_t cr2;
+    uint64_t cr3;   /* should be a 40-bit PPN for PGD in DRAM
+                       but we are using 48-bit virtual address on simulator;s heap
+                       by maloc() */
+} cpu_cr_t;
+cpu_cr_t cpu_controls;
 
 #define MAX_INSTRUCTION_CHAR 64
 #define NUM_INSTRTYPE 14
 
 // CPU's instruction cycle: excution of instrctions
-void instruction_cycle(core_t *cr);
+void instruction_cycle();
 
 /*----------------------------------*/
 // place the functions here because they requires the core_t type
@@ -270,7 +229,7 @@ void instruction_cycle(core_t *cr);
 
 // transllate the virtual addres to physical address in MMU
 // each MU is owned by each core
-uint64_t va2pa(uint64_t vaddr, core_t *cr);
+uint64_t va2pa(uint64_t vaddr);
 
 
 // end of include guard
