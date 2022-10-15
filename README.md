@@ -77,3 +77,7 @@
 （1）待完成：恢复成单核处理器
 
 （2）完成了 EMSI 协议：一个多线程（多cpu核心）下的控制指令的执行顺序和 cache 状态的改变以保证 **数据一致性** 的协议。真的是历经千辛万苦，写出重重 bug，克服重重 bug。（bug log 详见 mesi.c 文件末尾）
+
+### 10.15
+（1）完成了 true sharing，false sharing，no sharing 的效率比较（test_false_sharing.c）。cache 部分终于完结了
+（2）

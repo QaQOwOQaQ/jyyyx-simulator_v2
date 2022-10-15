@@ -3,5 +3,5 @@
 *~
 /.vscode
 exe_hardware
-ass_backup
-bin
+/backup
+/bin

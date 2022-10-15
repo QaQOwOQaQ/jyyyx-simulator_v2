@@ -3,7 +3,9 @@ CC = gcc
 CFLAGS = -Wall -g -O2 -Werror -std=gnu99 -Wno-unused-function
 
 BIN_MACHINE = ./bin/test_machine
-BIN_ELF      = ./bin/test_elf
+BIN_ELF     = ./bin/test_elf
+test_mesi   = ./bin/test_mesi
+test_false_sharing = ./bin/test_false_sharing
 
 SRC_DIR = ./src
 
@@ -15,8 +17,10 @@ CPU = $(SRC_DIR)/hardware/cpu/mmu.c $(SRC_DIR)/hardware/cpu/isa.c
 MEMORY = $(SRC_DIR)/hardware/memory/dram.c
 
 # main
-TEST_HARDWARE = $(SRC_DIR)/tests/test_machine.c
-TEST_ELF      = $(SRC_DIR)/tests/test_elf.c
+TEST_HARDWARE = $(SRC_DIR)/mains/test_machine.c
+TEST_ELF      = $(SRC_DIR)/mains/test_elf.c
+TEST_MESI     = $(SRC_DIR)/mains/mesi.c
+TEST_FALSE_SHARING = $(SRC_DIR)/mains/false_sharing.c
 
 # link
 LINK = $(SRC_DIR)/linker/parseELF.c $(SRC_DIR)/linker/staticlink.c
@@ -25,13 +29,25 @@ LINK = $(SRC_DIR)/linker/parseELF.c $(SRC_DIR)/linker/staticlink.c
 ./PHONY:link
 link:
 	$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON) $(LINK)  $(TEST_ELF) -o $(BIN_ELF)
-	./$(BIN_ELF)
+	$(BIN_ELF)
 
 
 .PHONY:machine
 machine:
 	$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON) $(CPU) $(MEMORY) $(TEST_HARDWARE) -o $(BIN_MACHINE)
-	./$(BIN_MACHINE)
+	$(BIN_MACHINE)
+
+mesi: 
+	$(CC) $(TEST_MESI) -o $(test_mesi) 
+	$(test_mesi)
+
+mesi_debug: 
+	$(CC) $(CFLAGS) $(TEST_MESI) -DDEBUG -o $(test_mesi)
+	$(test_mesi)
+
+false_sharing:
+	$(CC) $(CFLAGS) -pthread $(TEST_FALSE_SHARING) -o $(test_false_sharing)
+	$(test_false_sharing)
 
 clean:
-	rm -f *.o *~ $(BIN_MACHINE) $(BIN_ELF)
+	rm -f *.o *~ 
