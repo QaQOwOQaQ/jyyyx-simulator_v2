@@ -13,9 +13,10 @@
 // in this simulator, there are 4 + 6 + 6 = 16 bits physical address
 // then the pyhsical space is (1 << 16) = 65536
 // total 16 physical memory
-#define PHYSICAL_MEMORY_SPACE    65536
-#define MAX_INDEX_PHYSICAL_PAGE  15
+#define PHYSICAL_MEMORY_SPACE    (65536)
+#define MAX_INDEX_PHYSICAL_PAGE  (15)
 
+#define PAGE_TABLE_ENTRY_NUM     (521)
 
 // physical memory
 // 16 physical memory pages
@@ -74,7 +75,7 @@ typedef union
         uint64_t writethrough   : 1;    // write through or write back
         uint64_t cacheisabled   : 1;    // 是否可以将页放入 cache
         uint64_t reference      : 1;    
-        uint64_t dirty          : 1;    // dirty value - 1; clean value - 0;
+        uint64_t dirty          : 1;    // dirty value - 1; clean value - 0;    /*主要差别*/
         uint64_t zero7          : 1;    // alwalys 0
         uint64_t global         : 1;    
         uint64_t unused9_11     : 3;    // not use 9,10,11

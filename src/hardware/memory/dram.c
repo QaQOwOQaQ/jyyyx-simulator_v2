@@ -83,7 +83,7 @@ void cpu_write64bits_dram(uint64_t paddr, uint64_t data)
     }
 }
 
-void cpu_readinst_dram(uint64_t paddr, char *buf, core_t *cr)
+void cpu_readinst_dram(uint64_t paddr, char *buf)
 {
     for(int i = 0; i < MAX_INSTRUCTION_CHAR; i ++ )
     {
@@ -91,7 +91,7 @@ void cpu_readinst_dram(uint64_t paddr, char *buf, core_t *cr)
     }
 }
 
-void cpu_writeinst_dram(uint64_t paddr, const char *str, core_t *cr)
+void cpu_writeinst_dram(uint64_t paddr, const char *str)
 {
     int len = strlen(str);
     assert(len <= MAX_INSTRUCTION_CHAR);
