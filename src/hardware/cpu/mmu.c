@@ -9,6 +9,7 @@
 #include <headers/address.h>
 
 static uint64_t page_walk(uint64_t vaddr_value);
+static void page_fault_handler(pte4_t *pet, address_t vaddr); 
 
 uint64_t va2pa(uint64_t vaddr)
 {
@@ -26,17 +27,18 @@ uint64_t va2pa(uint64_t vaddr)
 */
 static uint64_t page_walk(uint64_t vaddr_value)
 {
+    // 转换地址类型，方便我们直接得到ppn，ppo等，而不是各种位运算（当然直接使用位运算是可行的，但是太麻烦且不好拓展）
     address_t vaddr = {
         .vaddr_value = vaddr_value,
     };
-    
+    // CR3-> PGD -> PUD -> PMD -> PT -> PPN
     int page_table_size = PAGE_TABLE_ENTRY_NUM * sizeof(pte123_t);
     
     // CR3 register's value is malloced on the heap of this simulator
     pte123_t *pgd = (pte123_t *)cpu_controls.cr3;           // page global directory
-    assert(pgd != NULL); // 肯定要存在
+    assert(pgd != NULL); // 肯定存在
     
-    if (pgd[vaddr.vpn1].present == 1)
+    if (pgd[vaddr.vpn1].present == 1) // vaddr.vpn1 is the offset of the page table - pgd's starting address
     {
         // starting PHYSICAL PAGE NUMBER of the next level page table
         // aka. high bits starting address of the page table
@@ -69,18 +71,24 @@ static uint64_t page_walk(uint64_t vaddr_value)
                 {
                     // page table entry not exist
 #ifdef DEBUG_PAGE_WALY
-                    printf("page walk level4: pmd[%lx].present == 0\n\tmalloc new page table for it\n", vaddr.vpn4);
+                    printf("page walk level[4]: pt[%lx].present == 0\n\tmalloc new page table for it\n", vaddr.vpn4);
 #endif        
-                    // TODO: page fault (缺页，与中断有关)
                     // map the physical page and the virtual page
-                    exie(0);
+                    // search paddr from main memory and disk
+                    
+                    // TODO: raise exception 14(paging fault here)
+                    // 这里的缺页处理应该交给kernal处理，但是在我们这里我们相当于交给hardware处理了
+
+                    // because this page not exits mm now, so we have to find it in disk
+                    // siwtch privilege from user mode(ring 3) to kernel mode(ring 0)
+                    page_fault_handler(&pt[vaddr.vpn4], vaddr);
                 }
             }
             else 
             {
                 // pt - level 4 not exits
 #ifdef DEBUG_PAGE_WALY
-               printf("page walk level3: pmd[%lx].present == 0\n\tmalloc new page table for it\n", vaddr.vpn3);
+               printf("page walk level[3]: pmd[%lx].present == 0\n\tmalloc new page table for it\n", vaddr.vpn3);
 #endif        
                 pte4_t *pt = malloc(page_table_size);
                 memset(pt, 0, sizeof(page_table_size));
@@ -98,7 +106,7 @@ static uint64_t page_walk(uint64_t vaddr_value)
         {        
             // pmd - level 3 not exits
 #ifdef DEBUG_PAGE_WALY
-            printf("page walk level2: pud[%lx].present == 0\n\tmalloc new page middle table for it\n", vaddr.vpn2);
+            printf("page walk level[2]: pud[%lx].present == 0\n\tmalloc new page middle table for it\n", vaddr.vpn2);
 #endif        
             pte123_t *pmd = malloc(page_table_size);
             memset(pmd, 0, sizeof(page_table_size));
@@ -116,13 +124,13 @@ static uint64_t page_walk(uint64_t vaddr_value)
     {
         // pud - level 2 not exits
 #ifdef DEBUG_PAGE_WALY
-        printf("page walk level1: pgd[%lx].present == 0\n\tmalloc new page upper table for it\n", vaddr.vpn1);
+        printf("page walk level[1]: pgd[%lx].present == 0\n\tmalloc new page upper table for it\n", vaddr.vpn1);
 #endif        
-        int page_table_size = PAGE_TABLE_ENTRY_NUM * sizeof(pte123_t);
         pte123_t *pud = malloc(page_table_size);
         memset(pud, 0, sizeof(page_table_size));
 
         // set page table entry
+        // we only use the bit of present and paddr, and ignore other bits
         pgd[vaddr.vpn1].present = 1;
         pgd[vaddr.vpn1].paddr   = (uint64_t)pud;
 
@@ -130,4 +138,49 @@ static uint64_t page_walk(uint64_t vaddr_value)
         // map the physical page and the virtual page
         exie(0);
     }
+}
+
+static void page_fault_handler(pte4_t *pte, address_t vaddr)
+{
+    // select one victim physical page to swap
+    
+    // this is the selected ppn for vaddr
+    int ppn = -1;
+    
+    // 1. try to request oen free physical page fro mDROM
+    // kernal's responsibility
+    /* 由于我们需要根据 ppn 的值来判断这一页是否存储在内存中（present）
+       而我们通过页表又无法得知这个信息，我们只能通过 vaddr 得映射到 paddr 从而判断 present
+       而无法通过 paddr 直接得到 present
+       所以我们需要增加一个反向映射由 paddr 得到 present
+       所以 add 一个 struct -- page_map(memory.h)
+    */
+    for(int i = 0; i < MAX_NUM_PHYSICAL_PAGE; i ++ )
+    {
+        if(page_map[i].pte4->present == 0)
+        {
+            printf("PageFault: use free ppn %d\n", i);
+            
+            // found i as free page
+            ppn = i;
+            page_map[ppn].allocated = 1;   // allocated for vaddr
+            page_map[ppn].dirty = 0;       // allocated for clean
+            page_map[ppn].time = 0;        // most recently used physical page
+            page_map[ppn].pte4 = pte;
+            
+            // update old ptr
+            pte->present = 1;
+            pte->dirty = 0;
+            pte->ppn = ppn;
+            
+            return ;
+        }
+    }
+
+    // 2.no free physical page: select a clean page(LRU) overwrite
+    // in this case, there is no DRAM - DISK translation
+
+
+    // 3. no free and no clean physical page
+    // write back (swap out) the DIRTY victim to disk
 }

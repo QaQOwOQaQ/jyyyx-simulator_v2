@@ -15,6 +15,7 @@
 // total 16 physical memory
 #define PHYSICAL_MEMORY_SPACE    (65536)
 #define MAX_INDEX_PHYSICAL_PAGE  (15)
+#define MAX_NUM_PHYSICAL_PAGE    (16)   // 1 + MAX_INDEX_PHYSICAL_PAGE
 
 #define PAGE_TABLE_ENTRY_NUM     (521)
 
@@ -81,7 +82,7 @@ typedef union
         uint64_t unused9_11     : 3;    // not use 9,10,11
         /* 因为第四级页表索引的是ppn(40bits)，而不是页表的地址(48bits)
            所以说这里我们不需要拓展paddr的范围 */
-        uint64_t paddr          : 40;   
+        uint64_t ppn            : 40;   
         uint64_t unused52_62    : 1;   
         uint64_t xdisabled      : 1;
     };
@@ -90,11 +91,29 @@ typedef union
     // page is swap out in disk
     struct 
     {
-        uint64_t _present      : 1;
+        uint64_t _present       : 1;    // present 0
         uint64_t swap_id        : 63;   // disk address
     };
 
 } pte4_t; // 第四级页表 - 索引 ppn
+
+
+// physical page descriptor
+typedef struct 
+{
+    // three state
+    int allocated;   // 1 means have allocated
+    int dirty;       // 1 means dirty value
+    int time;        // LRU cache
+
+    pte4_t *pte4;    // the reversed mapping: from PPN to page table entry
+} pd_t; // page descriptor
+
+ // for each pagable (mappable) physical page, create one mapping
+ // create one reversed mapping
+ /* 这里的反向映射显然太浪费空间了，明显可以优化，但是我们没有.. */
+pd_t page_map[MAX_NUM_PHYSICAL_PAGE];  
+
 
 
 /*============================*/
