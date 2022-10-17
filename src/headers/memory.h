@@ -92,8 +92,8 @@ typedef union
     struct 
     {
         uint64_t _present       : 1;    // present 0
-        uint64_t swap_id        : 63;   // disk address
-    };
+        uint64_t daddr          : 63;   // disk address
+    }; 
 
 } pte4_t; // 第四级页表 - 索引 ppn
 
@@ -107,12 +107,17 @@ typedef struct
     int time;        // LRU cache
 
     pte4_t *pte4;    // the reversed mapping: from PPN to page table entry
+    // really world: mapping to anno_vma or address_space
+    // we simply the situation here
+    // TODO: if mutiple process are using this page e.g. shared library
+    /* 反向映射并不是直接由物理地址映射到page table，它需要间接通过addresss_space */
+    uint64_t daddr;   // disk address, binding the reverse mapping with mapping to disl
 } pd_t; // page descriptor
 
  // for each pagable (mappable) physical page, create one mapping
  // create one reversed mapping
  /* 这里的反向映射显然太浪费空间了，明显可以优化，但是我们没有.. */
-pd_t page_map[MAX_NUM_PHYSICAL_PAGE];  
+pd_t page_map[MAX_NUM_PHYSICAL_PAGE];  // 反向映射表 ppn->pt
 
 
 

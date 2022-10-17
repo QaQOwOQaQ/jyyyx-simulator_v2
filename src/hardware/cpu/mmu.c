@@ -11,6 +11,9 @@
 static uint64_t page_walk(uint64_t vaddr_value);
 static void page_fault_handler(pte4_t *pet, address_t vaddr); 
 
+int swap_in(uint64_t daddr, uint64_t ppn);
+
+
 uint64_t va2pa(uint64_t vaddr)
 {
     // use page table to transfer virtual adress to physical adddress
@@ -62,7 +65,7 @@ static uint64_t page_walk(uint64_t vaddr_value)
                     // find page table entry
                     address_t paddr = {
                         .ppo = vaddr.vpo,    // page table size 
-                        .ppn = pt[vaddr.vpn4].paddr
+                        .ppn = pt[vaddr.vpn4].ppn
                     };
 
                     return paddr.paddr_value;
@@ -143,9 +146,13 @@ static uint64_t page_walk(uint64_t vaddr_value)
 static void page_fault_handler(pte4_t *pte, address_t vaddr)
 {
     // select one victim physical page to swap
-    
+    assert(pte->present == 0); // means this page not in physical memory
+
     // this is the selected ppn for vaddr
     int ppn = -1;
+    pte4_t *victim = NULL;
+    uint64_t daddr = -1; 
+    int lru_ppn = -1, lru_time = -1;
     
     // 1. try to request oen free physical page fro mDROM
     // kernal's responsibility
@@ -179,8 +186,103 @@ static void page_fault_handler(pte4_t *pte, address_t vaddr)
 
     // 2.no free physical page: select a clean page(LRU) overwrite
     // in this case, there is no DRAM - DISK translation
+    lru_ppn = -1;
+    lru_time = -1;
+    
+    for(int i = 0; i < MAX_NUM_PHYSICAL_PAGE; i ++ )
+    {
+        if(page_map[i].dirty == 0 && lru_time < page_map[i].time)
+        {
+            lru_time = page_map[i].time;
+            lru_ppn = i;
+        }
+    }
 
+    // found a clean physical page, dont need to page put to disk
+    if(lru_ppn != -1 && lru_time < MAX_NUM_PHYSICAL_PAGE)
+    {
+        ppn = lru_ppn;
+
+        // page out，将原本的映射删除
+        victim = page_map[lru_ppn].pte4;
+        
+        // reverse mapping
+        /* 维护虚拟页到磁盘的映射
+           1. 如果当前页在内存中，映射关系保存在page_map
+           2. 当前页不在内存中，映射关系由page table保存 */
+        victim->pte_value = 0; // reset
+        victim->present = 0;
+        victim->daddr = page_map[lru_ppn].daddr;
+
+        // load page from disk to physical memory first
+        /* 由于当前pte的present==0，因此它一定不存在于物理内存当中
+           所以它一定存在于磁盘当中，并且保存了磁盘的地址daddr
+           由于下面的 pte->value=0 会导致我们丢失磁盘地址
+           因此我们必须在这里把磁盘页加载到 ppn */
+        daddr = pte->daddr;
+        swap_in(daddr, ppn);
+
+        pte->pte_value = 0;
+        pte->present = 1;
+        pte->dirty = 0;
+        pte->ppn = ppn;
+            
+        page_map[lru_ppn].allocated = 1;
+        page_map[lru_ppn].dirty = 0;
+        page_map[lru_ppn].pte4 = pte;
+        page_map[lru_ppn].time = 0;
+        page_map[ppn].daddr = daddr; // 由于现在当前页在内存当中，因此将daddr放在page_map中
+
+        return ;
+    }
 
     // 3. no free and no clean physical page
     // write back (swap out) the DIRTY victim to disk
+    lru_ppn = -1;
+    lru_time = -1;
+    
+    for(int i = 0; i < MAX_NUM_PHYSICAL_PAGE; i ++ )
+    {
+        if(lru_time < page_map[i].time)
+        {
+            lru_time = page_map[i].time;
+            lru_ppn = i;
+        }
+    }
+    
+    assert(lru_ppn >= 0 && lru_ppn <= MAX_NUM_PHYSICAL_PAGE);
+
+    ppn = lru_ppn;
+
+    // reverse mapping
+    victim = page_map[lru_ppn].pte4;
+    
+    // write back
+    /* ppn 与磁盘 swap 建立映射 */
+    swap_out(page_map[ppn].daddr, ppn);
+
+    victim->pte_value = 0; // reset
+    victim->present = 0;
+    victim->daddr = page_map[lru_ppn].daddr;
+
+    // load page from disk to physical memory first
+    daddr = pte->daddr;
+    swap_in(daddr, ppn);
+
+    pte->pte_value = 0;
+    pte->present = 1;
+    pte->dirty = 0;
+    pte->ppn = ppn;
+        
+    page_map[lru_ppn].allocated = 1;
+    page_map[lru_ppn].dirty = 0;
+    page_map[lru_ppn].pte4 = pte;
+    page_map[lru_ppn].time = 0;
+    page_map[ppn].daddr = daddr; // 由于现在当前页在内存当中，因此将daddr放在page_map中
+
+    return ;
+
+    /* 可以发现，最坏的情况下我们需要扫描三次物理页，这效率也太低了
+        因此这里的函数实现肯定有优化的方法，只不过我们为了简单。。
+    */
 }
