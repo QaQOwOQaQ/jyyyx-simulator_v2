@@ -14,7 +14,7 @@
 #define SWAP_PAGE_FILE_LINES 512
 
 // disk address counter
-static uint64_t internal_swap_daddr = 0;
+//static uint64_t internal_swap_daddr = 0;
 
 int swap_in(uint64_t daddr, uint64_t ppn)
 {
@@ -31,7 +31,9 @@ int swap_in(uint64_t daddr, uint64_t ppn)
         char *str = fgets(buf, 64, fr);
         *(uint64_t *)&(pm[ppn_ppo + i * 8]) = string2uint(str);
     }
-    flose(fr);
+    fclose(fr);
+
+    return 0;
 }
 
 int swap_out(uint64_t daddr, uint64_t ppn)
@@ -50,7 +52,9 @@ int swap_out(uint64_t daddr, uint64_t ppn)
             然后通过给指针做类型转换(uint64_t *)就可以让这个指针以uint64的方式解引用
             就可以得到一个 uint64 的值了
         */        
-        fprintf(filename, "0x%16lx", *(uint64_t *)&(pm[ppn_ppo + i * 8]));
+        fprintf(fw, "0x%16lx", *(uint64_t *)&(pm[ppn_ppo + i * 8]));
     }
-    flose(fw);
+    fclose(fw);
+
+    return 0;
 }

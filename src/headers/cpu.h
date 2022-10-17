@@ -10,7 +10,7 @@
 /*=============================*/
 
 
-typedef struct REGISTER_STRUCT
+typedef struct
 {
     union // return value
     {
@@ -156,15 +156,43 @@ typedef struct REGISTER_STRUCT
         uint16_t r15w;
         uint8_t  r15b;
     };
-} reg_t;
-
+} cpu_reg_t;
+cpu_reg_t cpu_reg;
 
 
 /*===================================*/
-/*           (multi)cpu core         */
+/*              cpu core             */
 /*===================================*/
 
-typedef union CPU_FLAGS_STRUCT {
+// condition code flags of most recent (latest) operation
+// condition codes will only be set by the following integer arithmetic instructions
+
+/* integer arithmetic instructions
+    inc     increment 1
+    dec     decrement 1
+    neg     negate
+    not     complement
+    ----------------------------
+    add     add
+    sub     subtract
+    imul    multiply
+    xor     exclusive or
+    or      or
+    and     and
+    ----------------------------
+    sal     left shift
+    shl     left shift (same as sal)
+    sar     arithmetic right shift
+    shr     logical right shift
+*/
+
+/* comparison and test instructions
+    cmp     compare
+    test    test
+*/
+
+// the 4 flags be a uint64_t in total
+typedef union {
     /*
         the past implementation is too watseful(using a uint64 to represent a flag)
         we can only use a bit to represent it by making full use of C language characteristics
@@ -172,7 +200,7 @@ typedef union CPU_FLAGS_STRUCT {
 
         and the format using structs and unions to represent something is very useful and common
     */
-    uint64_t __cpu_flag_value;
+    uint64_t __flags_value;
     
     /*=================================================*/
     /*             | CF | ZF | SF | OF |               */
@@ -190,8 +218,8 @@ typedef union CPU_FLAGS_STRUCT {
         // overflow flag: detect overflow for signed operations
         uint16_t OF;
     };
-} cpu_flag_t;
-cpu_flag_t cpu_flags;
+} cpu_flags_t;
+cpu_flags_t cpu_flags;
 
 // program count or instruction pointer
 typedef union
@@ -213,7 +241,9 @@ typedef struct
 } cpu_cr_t;
 cpu_cr_t cpu_controls;
 
-#define MAX_INSTRUCTION_CHAR 64
+// move to common.h to be shared by linker
+// #define MAX_INSTRUCTION_CHAR 64
+
 #define NUM_INSTRTYPE 14
 
 // CPU's instruction cycle: excution of instrctions

@@ -3,7 +3,7 @@
 #define MEMORY_GUARD
 
 #include <stdint.h>
-#include "cpu.h"
+#include <headers/cpu.h>
 
 /*========================================*/
 /*      physical memory on dram chips     */
@@ -33,10 +33,10 @@ typedef union
     struct 
     {
         uint64_t present        : 1;    // 子页表在内存中（1），不在（0）
-        uint64_t read           : 1;    // 对于子页，只读或者读写访问权限 
+        uint64_t readonly       : 1;    // 对于子页，只读或者读写访问权限 
         uint64_t usermoed       : 1;    // 处于什么状态对页面的换入和换出很关键，内核的页不能由用户swap
-        uint64_t writethrough   : 1;    // write through or write back
-        uint64_t cacheisabled   : 1;    // 是否可以将页放入 cache
+        uint64_t writethough    : 1;    // write through or write back
+        uint64_t cachedisabled  : 1;    // 是否可以将页放入 cache
         uint64_t reference      : 1;    
         uint64_t unused6        : 1;    // not use 6
         uint64_t smallpage      : 1;    // page size, big for 4mb or small for 4kb
@@ -58,8 +58,8 @@ typedef union
     // page is swap out in disk
     struct 
     {
-        uint64_t _present      : 1;
-        uint64_t swap_id        : 63;   // disk address
+        uint64_t _present       : 1;
+        uint64_t daddr          : 63;   // disk address
     };
 
 } pte123_t; // 123 means 前三级页表 - 索引下一级页表
@@ -71,10 +71,10 @@ typedef union
     struct 
     {
         uint64_t present        : 1;    // 子页表在内存中（1），不在（0）
-        uint64_t read           : 1;    // 对于子页，只读或者读写访问权限 
+        uint64_t readonly       : 1;    // 对于子页，只读或者读写访问权限 
         uint64_t usermoed       : 1;    // 处于什么状态对页面的换入和换出很关键，内核的页不能由用户swap
-        uint64_t writethrough   : 1;    // write through or write back
-        uint64_t cacheisabled   : 1;    // 是否可以将页放入 cache
+        uint64_t writethough    : 1;    // write through or write back
+        uint64_t cachedisabled  : 1;    // 是否可以将页放入 cache
         uint64_t reference      : 1;    
         uint64_t dirty          : 1;    // dirty value - 1; clean value - 0;    /*主要差别*/
         uint64_t zero7          : 1;    // alwalys 0

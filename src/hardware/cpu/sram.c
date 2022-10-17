@@ -12,6 +12,10 @@
 uint8_t sram_cache_read(uint64_t paddr);
 void sram_cache_write(uint64_t paddr, uint8_t data);
 
+void bus_read_cacheline (uint64_t paddr, uint8_t *block);
+void bus_write_cacheline(uint64_t paddr, uint8_t *block);
+
+
 /* ========================  cache write policy  ============================
 For problem：CPU 修改了 cache 中数据的副本，如何保证主存中数据母本的一致性 -- cache write policy
 
@@ -74,9 +78,8 @@ typedef struct // cache
     sram_cacheset_t sets[(1 << SRAM_CACHE_INDEX_LENGTH)];
 } sram_cache_t;
 
-/*++++++++++++++ define cache struct end +++++++++++++*/
-
 static sram_cache_t cache;
+/*++++++++++++++ define cache struct end +++++++++++++*/
 
 
 /* ++++++++++++++ interface ++++++++++++++*/
@@ -138,7 +141,7 @@ uint8_t sram_cache_read(uint64_t paddr_value)
     if(invalid != NULL)  // 优先使用未使用的块
     {
         // load date from DRAM to this invalid cache line
-        bus_read_cacheline(paddr.address_value, &(invalid->block));
+        bus_read_cacheline(paddr.address_value, &(invalid->block[0])); // bug: 这里第二个参数我们应该传入一个指针，但是我们传入了一个数组
 
         // update cache line state
         invalid->state = CACHE_LINE_CLEAN;
@@ -170,7 +173,7 @@ uint8_t sram_cache_read(uint64_t paddr_value)
     // read from dram
     // load date from DRAM to this invalid cache line
     // 现在该 line 被新数据占用了
-    bus_read_cacheline(paddr.address_value, &(victim->block));
+    bus_read_cacheline(paddr.address_value, &(victim->block[0]));
 
     // update cache line state
     victim->state = CACHE_LINE_CLEAN;

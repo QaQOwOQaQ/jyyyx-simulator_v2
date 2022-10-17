@@ -11,6 +11,10 @@
 void bus_read_cacheline (uint64_t paddr, uint8_t *block);
 void bus_write_cacheline(uint64_t paddr, uint8_t *block);
 
+
+uint8_t sram_cache_read(uint64_t paddr);
+void sram_cache_write(uint64_t paddr, uint8_t data);
+
 /*
 Be careful with the x86-64 little-endian integer encoding
 e.g. write 0x0000-7fd3-57a0-2ae0 to cache, the memory lapping should be: 
@@ -27,60 +31,54 @@ e.g. write 0x0000-7fd3-57a0-2ae0 to cache, the memory lapping should be:
 // memory accessing used in struction
 uint64_t cpu_read64bits_dram(uint64_t paddr)
 {
-    if(DEBUG_ENABLE_SRAM_CACHE == 1)
+#ifdef DEBUG_ENABLE_SRAM_CACHE
+    // try to load uint64_t from SRAM cache
+    // little-endian
+    uint64_t _val = 0x0;
+    for(int i = 0; i < sizeof(uint64_t); i ++ )
     {
-        // try to load uint64_t from SRAM cache
-        // little-endian
-        uint64_t val = 0x0;
-        for(int i = 0; i < sizeof(uint64_t); i ++ )
-        {
-            val += (sram_cache_read(paddr + i) << (i * 8));
-        }
-        return val;
+        _val += (sram_cache_read(paddr + i) << (i * 8));
     }
-    else
-    {
-        // read from DRAM directly
-        // little-endian
-
-        uint64_t val = 0x0;
-        val += (((uint64_t)pm[paddr + 0]) << 0);
-        val += (((uint64_t)pm[paddr + 1]) << 8);
-        val += (((uint64_t)pm[paddr + 2]) << 16);
-        val += (((uint64_t)pm[paddr + 3]) << 24);
-        val += (((uint64_t)pm[paddr + 4]) << 32);
-        val += (((uint64_t)pm[paddr + 5]) << 40);
-        val += (((uint64_t)pm[paddr + 6]) << 48);
-        val += (((uint64_t)pm[paddr + 7]) << 56);
-        return val;
-    }
+    return _val;
+#endif
+    uint64_t val = 0x0;
+    // read from DRAM directly
+    // little-endian
+    val += (((uint64_t)pm[paddr + 0]) << 0);
+    val += (((uint64_t)pm[paddr + 1]) << 8);
+    val += (((uint64_t)pm[paddr + 2]) << 16);
+    val += (((uint64_t)pm[paddr + 3]) << 24);
+    val += (((uint64_t)pm[paddr + 4]) << 32);
+    val += (((uint64_t)pm[paddr + 5]) << 40);
+    val += (((uint64_t)pm[paddr + 6]) << 48);
+    val += (((uint64_t)pm[paddr + 7]) << 56);
+    
+    return val;
 }
 
 void cpu_write64bits_dram(uint64_t paddr, uint64_t data)
 {
-    if(DEBUG_ENABLE_SRAM_CACHE == 1)
+#ifdef DEBUG_ENABLE_SRAM_CACHE
+    // try to write uint64_t to SRAM cache
+    // little-endian
+    for(int i = 0; i < sizeof(uint64_t); i ++ )
     {
-        // try to write uint64_t to SRAM cache
-        // little-endian
-        for(int i = 0; i < sizeof(uint64_t); i ++ )
-        {
-            sram_cache_write(paddr + i, (data >> i * sizeof(uint64_t)) & 0xFF);
-        }
-        return ;
+        sram_cache_write(paddr + i, (data >> (i * sizeof(uint64_t))) & 0xff);
     }
-    else
-    {
-        // write tp DRAM directly
-        // little-endian
-        pm[paddr + 0] = (data >> 0 ) & 0xff;
-        pm[paddr + 1] = (data >> 8 ) & 0xff;
-        pm[paddr + 2] = (data >> 16) & 0xff;
-        pm[paddr + 3] = (data >> 24) & 0xff;
-        pm[paddr + 4] = (data >> 32) & 0xff;
-        pm[paddr + 5] = (data >> 40) & 0xff;
-        pm[paddr + 6] = (data >> 48) & 0xff;
-        pm[paddr + 7] = (data >> 56) & 0xff;   
-    }
+    return ;
+#endif 
+
+    // write tp DRAM directly
+    // little-endian
+    pm[paddr + 0] = (data >> 0 ) & 0xff;
+    pm[paddr + 1] = (data >> 8 ) & 0xff;
+    pm[paddr + 2] = (data >> 16) & 0xff;
+    pm[paddr + 3] = (data >> 24) & 0xff;
+    pm[paddr + 4] = (data >> 32) & 0xff;
+    pm[paddr + 5] = (data >> 40) & 0xff;
+    pm[paddr + 6] = (data >> 48) & 0xff;
+    pm[paddr + 7] = (data >> 56) & 0xff;   
+
 }
 
 void cpu_readinst_dram(uint64_t paddr, char *buf)

@@ -1,3 +1,6 @@
+#ifndef INSTRUCTION_GUARD
+#define INSTRUCTION_GUARD
+
 #include <stdint.h>
 
 /*==========================================*/
@@ -55,3 +58,7 @@ typedef struct INST_STRUCT
     od_t src;
     od_t dst;
 } inst_t;
+
+#define MAX_NUM_INSTRUCTION_CYCLE (100)
+
+#endif 

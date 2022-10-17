@@ -13,11 +13,12 @@ SRC_DIR = ./src
 COMMON = $(SRC_DIR)/common/print.c  $(SRC_DIR)/common/convert.c
 
 # machine
-CPU = $(SRC_DIR)/hardware/cpu/mmu.c $(SRC_DIR)/hardware/cpu/isa.c
-MEMORY = $(SRC_DIR)/hardware/memory/dram.c
+CPU = $(SRC_DIR)/hardware/cpu/mmu.c  $(SRC_DIR)/hardware/cpu/isa.c  $(SRC_DIR)/hardware/cpu/sram.c
+MEMORY = $(SRC_DIR)/hardware/memory/dram.c  $(SRC_DIR)/hardware/memory/swap.c
+ALGORITHM = $(SRC_DIR)
 
 # main
-TEST_HARDWARE = $(SRC_DIR)/mains/test_machine.c
+TEST_HARDWARE = $(SRC_DIR)/hardware/cpu/isa.c
 TEST_ELF      = $(SRC_DIR)/mains/test_elf.c
 TEST_MESI     = $(SRC_DIR)/mains/mesi.c
 TEST_FALSE_SHARING = $(SRC_DIR)/mains/false_sharing.c
@@ -34,7 +35,7 @@ link:
 
 .PHONY:machine
 machine:
-	$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON) $(CPU) $(MEMORY) $(TEST_HARDWARE) -o $(BIN_MACHINE)
+	$(CC) $(CFLAGS) -I$(SRC_DIR) -DDEBUG_INSTRUCTION_CYCLE $(COMMON) $(CPU) $(MEMORY) $(TEST_HARDWARE) -o $(BIN_MACHINE)
 	$(BIN_MACHINE)
 
 mesi: 

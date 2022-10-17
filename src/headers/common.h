@@ -23,7 +23,7 @@
 #define DEBUG_PARSEINST             (0x100)   // parse_inst
 #define DEBUG_DATASTRUCTURE         (0x200)   // algorithm
 
-#define DEBUG_VERBOSE_SET           (0x41)     // debug switch for debug_type  
+#define DEBUG_VERBOSE_SET           (0x241)     // debug switch for debug_type  
 
 // do page walk
 #define DEBUG_ENABLE_PAGE_WALK      (0)
@@ -46,5 +46,23 @@ uint64_t string2uint_range(const char *str, int start, int end);
 
 // common shared variables
 #define MAX_INSTRUCTION_CHAR (64)
+
+
+// TODO :算法部分添加的相关函数，测试模拟汇编指令需要用到
+// commonly shared variables
+#define MAX_INSTRUCTION_CHAR (64)
+
+/*======================================*/
+/*      clean up events                 */
+/*======================================*/
+void add_cleanup_event(void *func);
+void finally_cleanup();
+
+/*======================================*/
+/*      wrap of the memory              */
+/*======================================*/
+void *tag_malloc(uint64_t size, char *tagstr);
+int tag_free(void *ptr);
+void tag_sweep(char *tagstr);
 
 #endif

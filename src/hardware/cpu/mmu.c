@@ -2,22 +2,150 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <assert.h>
 #include <headers/common.h>
 #include <headers/cpu.h>
 #include <headers/memory.h>
 #include <headers/address.h>
 
+/* ++++++++++++++ TLB CACHE struct +++++++++++ */
+#define NUM_TLB_CACHE_LINE_PRE_SET (8)
+
+typedef struct // cache 行
+{
+    int valid;      // valid -> 1, invalid -> 0
+    uint64_t tag;
+    uint64_t ppn;
+} tlb_cacheline_t;
+
+typedef struct // cache 组
+{
+    tlb_cacheline_t lines[NUM_TLB_CACHE_LINE_PRE_SET];
+} tlb_cacheset_t;
+
+typedef struct // cache
+{
+    tlb_cacheset_t sets[(1 << TLB_CACHE_INDEX_LENGTH)];
+} tlb_cache_t;
+
+static tlb_cache_t mmu_tlb;
+/* ----------------- TLB CACHE ----------------- */
+
+
 static uint64_t page_walk(uint64_t vaddr_value);
 static void page_fault_handler(pte4_t *pet, address_t vaddr); 
 
 int swap_in(uint64_t daddr, uint64_t ppn);
+int swap_out(uint64_t daddr, uint64_t ppn);
+
+static int read_tlb(uint64_t vaddr_value, uint64_t *paddr_value_ptr, int *free_tlb_line_index);
+static int write_tlb(uint64_t vaddr_value, uint64_t paddr_value, int free_tlb_line_index);
+
 
 
 uint64_t va2pa(uint64_t vaddr)
 {
-    // use page table to transfer virtual adress to physical adddress
-    return page_walk(vaddr);
+    uint64_t paddr = 0;
+
+#ifdef USE_TLB_HADRDWARE   
+    int free_tlb_line_index = -1;
+    int tlb_hit = read_tlb(vaddr, &paddr, &free_tlb_line_index);
+
+    // TODO: add flag to read this failed
+    if(tlb_hit == 1)
+    {
+        // TLB read hit
+        return paddr;
+    }
+
+    // TLB read miss
+#endif
+
+    // assume that page_walk is consuming much time
+    paddr = page_walk(vaddr);
+
+#ifdef USE_TLB_HARDWARE
+    // refresh TLB
+    // TODO: check if this paddr from page table is a legal address
+    if(paddr != 0)
+    {
+        // TLB write
+        if(write_tlb(vaddr, paddr, free-tlb_line_index) == 1)
+        {
+            return paddr;
+        }
+    }
+#endif 
+
+    // use page table as va2pa
+    return paddr;
+}
+
+static int read_tlb(uint64_t vaddr_value, uint64_t *paddr_value_ptr, int *free_tlb_line_index)
+{
+    address_t addr = {
+        .address_value = vaddr_value,
+    };
+
+    tlb_cacheset_t *set = &mmu_tlb.sets[addr.tlbi];
+    *free_tlb_line_index = -1;
+    
+    for(int i = 0; i < NUM_TLB_CACHE_LINE_PRE_SET; i ++ )
+    {
+        tlb_cacheline_t *line = &set->lines[i];
+        
+        if(line->valid == 0)
+        {
+            *free_tlb_line_index = i;
+        }
+        
+        if(line->tag == addr.tlbt && line->valid != 0)
+        {
+            // TLB read hit
+            *paddr_value_ptr = line->ppn;
+            return 1;
+        }
+    }
+
+    // TLB read miss
+    paddr_value_ptr = NULL;
+    return 0;
+}
+
+static int write_tlb(uint64_t vaddr_value, uint64_t paddr_value, int free_tlb_line_index)
+{
+    address_t vaddr = {
+        .address_value = vaddr_value,
+    };
+    address_t paddr = {
+        .address_value = paddr_value,
+    };
+    tlb_cacheset_t *set = &mmu_tlb.sets[vaddr.tlbi];
+    
+    // get a valid tlb index
+    if(free_tlb_line_index >= 0 && free_tlb_line_index < NUM_TLB_CACHE_LINE_PRE_SET)
+    {
+        tlb_cacheline_t *line = &set->lines[free_tlb_line_index];
+
+        line->valid = 1;
+        line->ppn = paddr.ppn;
+        line->tag = vaddr.tlbt;
+        
+        return 1;
+    }
+
+    // no free TLB cache line, select RANDOM victim but LRU
+    // because it's very fast
+    srand(time(NULL));
+    int random_victim_index = rand() % NUM_TLB_CACHE_LINE_PRE_SET;
+    tlb_cacheline_t *line = &set->lines[random_victim_index];
+
+    line->valid = 1;
+    line->ppn = paddr.ppn;
+    line->tag = vaddr.tlbt;
+        
+    return 1;
 }
 
 // input - virtual address
@@ -38,7 +166,7 @@ static uint64_t page_walk(uint64_t vaddr_value)
     int page_table_size = PAGE_TABLE_ENTRY_NUM * sizeof(pte123_t);
     
     // CR3 register's value is malloced on the heap of this simulator
-    pte123_t *pgd = (pte123_t *)cpu_controls.cr3;           // page global directory
+    pte123_t *pgd = (pte123_t *)((uint64_t)cpu_controls.cr3);           // page global directory
     assert(pgd != NULL); // 肯定存在
     
     if (pgd[vaddr.vpn1].present == 1) // vaddr.vpn1 is the offset of the page table - pgd's starting address
@@ -47,18 +175,18 @@ static uint64_t page_walk(uint64_t vaddr_value)
         // aka. high bits starting address of the page table
         // aka. (also known as，亦称、也被称为) 
         // 下一级页表的起始地址，同时我们也认为它是下一级页表的页号
-        pte123_t *pud = pgd[vaddr.vpn1].paddr;  // 下一级页表的paddr
+        pte123_t *pud =(pte123_t *)((uint64_t)pgd[vaddr.vpn1].paddr);  // 下一级页表的paddr debug:(这里编译不过，我加了uint64_t类型转换)
 
         if(pud[vaddr.vpn2].present == 1)
         {
             // find pmd ppn
-            pte123_t *pmd = (pte123_t *)pud[vaddr.vpn2].paddr;
+            pte123_t *pmd = (pte123_t *)((uint64_t)(pud[vaddr.vpn2].paddr));
 
             if(pmd[vaddr.vpn3].present == 1)
             {
                 // find pt pno
                 
-                pte4_t *pt = (pte4_t *)(pmd[vaddr.vpn3].paddr);
+                pte4_t *pt = (pte4_t *)((uint64_t)(pmd[vaddr.vpn3].paddr));
 
                 if(pt[vaddr.vpn4].present == 1)
                 {
@@ -102,7 +230,7 @@ static uint64_t page_walk(uint64_t vaddr_value)
 
                 // TODO: page fault (缺页，与中断有关)
                 // map the physical page and the virtual page
-                exie(0);
+                exit(0);
             }
         }
         else 
@@ -120,7 +248,7 @@ static uint64_t page_walk(uint64_t vaddr_value)
 
             // TODO: page fault (缺页，与中断有关)
             // map the physical page and the virtual page
-            exie(0);
+            exit(0);
         }
     }
     else 
@@ -139,8 +267,9 @@ static uint64_t page_walk(uint64_t vaddr_value)
 
         // TODO: page fault (缺页，与中断有关)
         // map the physical page and the virtual page
-        exie(0);
+        exit(0);
     }
+    return 0; // 作者没有加最后的返回值，我自己加的
 }
 
 static void page_fault_handler(pte4_t *pte, address_t vaddr)
