@@ -27,7 +27,7 @@ TEST_FALSE_SHARING = $(SRC_DIR)/mains/false_sharing.c
 LINK = $(SRC_DIR)/linker/parseELF.c $(SRC_DIR)/linker/staticlink.c
 
 # run
-./PHONY:link
+.PHONY:link
 link:
 	$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON) $(LINK)  $(TEST_ELF) -o $(BIN_ELF)
 	$(BIN_ELF)

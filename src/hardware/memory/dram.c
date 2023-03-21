@@ -8,12 +8,11 @@
 #include <headers/memory.h>
 #include <headers/address.h>
 
-void bus_read_cacheline (uint64_t paddr, uint8_t *block);
-void bus_write_cacheline(uint64_t paddr, uint8_t *block);
-
-
 uint8_t sram_cache_read(uint64_t paddr);
 void sram_cache_write(uint64_t paddr, uint8_t data);
+
+void bus_read_cacheline (uint64_t paddr, uint8_t *block);
+void bus_write_cacheline(uint64_t paddr, uint8_t *block);
 
 /*
 Be careful with the x86-64 little-endian integer encoding
